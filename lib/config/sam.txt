@@ -1,1 +1,4 @@
-added some text
+# App configuration
+ # App themes
+ # Route definitions
+ # Firebase initialization
