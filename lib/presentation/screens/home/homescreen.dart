@@ -33,49 +33,86 @@ class _HomescreenState extends State<Homescreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF1F323C), // Top
-                Color(0xFF000000), // Bottom
-              ],
-            ),
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(15.0),
-                child: SizedBox(
-                  height: 100,
-                  child: ListView.separated(
-                    separatorBuilder:
-                        (context, index) => const SizedBox(width: 10),
-                    scrollDirection: Axis.horizontal,
-                    itemBuilder:
-                        (context, index) => StoryCircleItem(textTheme: textTheme, index: index,),
-                    itemCount: 10,
-                  ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF1F323C), // Top
+                    Color(0xFF000000), // Bottom
+                  ],
                 ),
               ),
-              ListView.separated(
-                physics: NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                itemCount: 10,
-                separatorBuilder: (context, index) => const SizedBox(height: 30,),
-                itemBuilder: (context, index) => 
-                FeedContainerItem(textTheme: textTheme)),
-            ],
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(15.0),
+                    child: SizedBox(
+                      height: 100,
+                      child: ListView.separated(
+                        separatorBuilder:
+                            (context, index) => const SizedBox(width: 10),
+                        scrollDirection: Axis.horizontal,
+                        itemBuilder:
+                            (context, index) => StoryCircleItem(
+                              textTheme: textTheme,
+                              index: index,
+                            ),
+                        itemCount: 10,
+                      ),
+                    ),
+                  ),
+                  ListView.separated(
+                    physics: NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    itemCount: 10,
+                    separatorBuilder:
+                        (context, index) => const SizedBox(height: 30),
+                    itemBuilder:
+                        (context, index) =>
+                            FeedContainerItem(textTheme: textTheme),
+                  ),
+                  const SizedBox(height: 75,)
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
-      bottomNavigationBar: Container(
-        height: 50,
-        width: double.infinity,
-        color: Color(0xFF0A1A27),
+          Positioned(
+            left: 15,
+            right: 15,
+            bottom: 15,
+            child: Container(
+              height: 50,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(6)
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Icon(Icons.home_rounded, color: Colors.white, size: 32),
+                  Icon(Icons.search, color: Colors.white, size: 32),
+                  Icon(Icons.add_box_outlined, color: Colors.white, size: 32),
+                  Icon(
+                    Icons.play_circle_outline_rounded,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                  Icon(
+                    Icons.notifications_none_rounded,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
