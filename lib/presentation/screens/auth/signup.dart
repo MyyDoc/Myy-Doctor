@@ -25,19 +25,3 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 }
-
-// Container(
-//         height: 50,
-//         width: double.infinity,
-//         color: Color(0xFF0A1A27),
-//         child: Row(
-//           mainAxisAlignment: MainAxisAlignment.spaceAround,
-//           children: [
-//             Icon(Icons.home_rounded, color: Colors.white, size: 32,),
-//             Icon(Icons.search, color: Colors.white, size: 32,),
-//             Icon(Icons.add_box_outlined, color: Colors.white, size: 32,),
-//             Icon(Icons.play_circle_outline_rounded, color: Colors.white, size: 32,),
-//             Icon(Icons.notifications_none_rounded, color: Colors.white, size: 32,)
-//           ],
-//         ),
-//       ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/search/search_screen.dart';
 import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
+import 'package:myydoctor/services/location/location.dart';
 
 class Homescreen extends StatefulWidget {
   const Homescreen({super.key});
@@ -10,6 +12,29 @@ class Homescreen extends StatefulWidget {
 }
 
 class _HomescreenState extends State<Homescreen> {
+
+   @override
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
+  }
+
+  String? currentCity;
+
+    Future<void> _getCurrentLocation() async {
+
+    try {
+      String? city = await LocationService.getCurrentCity();
+      setState(() {
+        currentCity = city;
+      });
+      print(city);
+      print("cityyyyy");
+    } catch (e) {
+      
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context); // ThemeData
@@ -76,7 +101,7 @@ class _HomescreenState extends State<Homescreen> {
                         (context, index) =>
                             FeedContainerItem(textTheme: textTheme),
                   ),
-                  const SizedBox(height: 75,)
+                  const SizedBox(height: 75),
                 ],
               ),
             ),
@@ -96,7 +121,9 @@ class _HomescreenState extends State<Homescreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   Icon(Icons.home_rounded, color: Colors.white, size: 32),
-                  Icon(Icons.search, color: Colors.white, size: 32),
+                  GestureDetector(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SearchScreen(currentLoc: currentCity ?? "Kochi",),)),
+                    child: Icon(Icons.search, color: Colors.white, size: 32)),
                   Icon(Icons.add_box_outlined, color: Colors.white, size: 32),
                   Icon(
                     Icons.play_circle_outline_rounded,
