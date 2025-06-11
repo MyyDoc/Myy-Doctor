@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myydoctor/presentation/screens/auth/signup.dart'; // Add this import
+import 'package:myydoctor/presentation/widgets/auth/loginButton.dart';
+import 'package:myydoctor/presentation/widgets/auth/icons.dart';
+import 'package:myydoctor/presentation/widgets/auth/logo.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,15 +13,32 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // Controllers
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _reEnterPasswordController = TextEditingController();
+  
+  // State variables
   bool _obscurePassword = true;
+  bool _obscureReEnterPassword = true;
+  bool _isSignUpMode = false; // This toggles between login and signup
 
   @override
   void dispose() {
+    _emailController.dispose();
+    _fullNameController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _reEnterPasswordController.dispose();
     super.dispose();
+  }
+
+  void _toggleMode() {
+    setState(() {
+      _isSignUpMode = !_isSignUpMode;
+    });
   }
 
   @override
@@ -38,349 +57,375 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo Container
-                  Container(
-                    width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF172832),
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                        color: const Color(0xFFD4AF37), // Gold border
-                        width: 3,
-                      ),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(27),
-                      child: Image.asset(
-                        'assets/images/3172471a0d8a9cd80d4a843e30aa11563af1fced (1).png',
-                        width: 160,
-                        height: 160,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'MD',
-                                  style: GoogleFonts.cormorantGaramond(
-                                    color: Colors.white,
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'MY DOCTOR',
-                                  style: GoogleFonts.cormorantGaramond(
-                                    color: const Color(0xFFD4AF37),
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
+          child: Column(
+            children: [
+              // Fixed logo section at the top
+              Container(
+                padding: const EdgeInsets.only(top: 40, bottom: 20),
+                child: const AppLogo(),
+              ),
+              
+              // Scrollable content section
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
 
-                  // Username Field
-                  TextField(
-                    controller: _usernameController,
-                    style: GoogleFonts.cormorantGaramond(fontSize: 20),
-                    decoration: InputDecoration(
-                      hintText: 'Username',
-                      hintStyle: GoogleFonts.cormorantGaramond(fontSize: 20),
-                      filled: true,
-                      fillColor: Colors.white,
-                      enabledBorder: OutlineInputBorder(
-                        // Remove const here
-                        borderRadius: BorderRadius.circular(7),
-                        borderSide: const BorderSide(
-                          color: Color(0xFFD4AF37),
-                          width: 2,
+                      // Email Field (only for signup)
+                      if (_isSignUpMode) ...[
+                        _buildTextField(
+                          controller: _emailController,
+                          hintText: 'Email Address',
                         ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        // Remove const here
-                        borderRadius: BorderRadius.circular(7),
-                        borderSide: const BorderSide(
-                          color: Color(0xFFD4AF37),
-                          width: 2,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                        const SizedBox(height: 14),
+                      ],
 
-                  // Password Field
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    style: GoogleFonts.cormorantGaramond(fontSize: 20),
-                    decoration: InputDecoration(
-                      hintText: 'Password',
-                      hintStyle: GoogleFonts.cormorantGaramond(fontSize: 20),
-                      filled: true,
-                      fillColor: Colors.white,
-                      enabledBorder: OutlineInputBorder(
-                        // Remove const here
-                        borderRadius: BorderRadius.circular(7),
-                        borderSide: const BorderSide(
-                          color: Color(0xFFD4AF37),
-                          width: 2,
+                      // Full Name Field (only for signup)
+                      if (_isSignUpMode) ...[
+                        _buildTextField(
+                          controller: _fullNameController,
+                          hintText: 'Full Name',
                         ),
+                        const SizedBox(height: 14),
+                      ],
+
+                      // Username Field
+                      _buildTextField(
+                        controller: _usernameController,
+                        hintText: 'Username',
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        // Remove const here
-                        borderRadius: BorderRadius.circular(7),
-                        borderSide: const BorderSide(
-                          color: Color(0xFFD4AF37),
-                          width: 2,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
+                      const SizedBox(height: 14),
+
+                      // Password Field
+                      _buildPasswordField(
+                        controller: _passwordController,
+                        hintText: 'Password',
+                        obscureText: _obscurePassword,
+                        onToggleVisibility: () {
                           setState(() {
                             _obscurePassword = !_obscurePassword;
                           });
                         },
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 25),
+                      const SizedBox(height: 14),
 
-                  // Service upload text
-                  RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      style: GoogleFonts.cormorantGaramond(
-                        color: Colors.white70,
-                        fontSize: 15,
-                      ),
-                      children: [
-                        const TextSpan(
-                          text:
-                              'People who use our service may have uploaded\nyour contact information to Myydoctor. ',
+                      // Re-Enter Password Field (only for signup)
+                      if (_isSignUpMode) ...[
+                        _buildPasswordField(
+                          controller: _reEnterPasswordController,
+                          hintText: 'Re-Enter Password',
+                          obscureText: _obscureReEnterPassword,
+                          onToggleVisibility: () {
+                            setState(() {
+                              _obscureReEnterPassword = !_obscureReEnterPassword;
+                            });
+                          },
                         ),
-                        TextSpan(
-                          text: 'Learn More',
-                          style: GoogleFonts.cormorantGaramond(
-                            color: const Color(0xFFD4AF37),
-                            fontSize: 17,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
+                        const SizedBox(height: 14),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 38),
 
-                  // Login Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => SignUpScreen(),));
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF89AEBA),
-                        side: const BorderSide(
-                          color: Color(0xFFD4AF37),
-                          width: 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                      ),
-                      child: Text(
-                        'Log In',
-                        style: GoogleFonts.cormorantGaramond(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+                      // Service upload text or Terms for signup
+                      if (_isSignUpMode)
+                        _buildTermsText()
+                      else
+                        _buildServiceText(),
+                      
+                      const SizedBox(height: 16),
 
-                  // Social Login Icons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildSocialButtonWithImage(
-                        imagePath: 'assets/images/googleLogo.png',
-                        backgroundColor: Colors.white,
-                        onTap: () {
-                          // Handle Google login
-                        },
-                      ),
-                      const SizedBox(width: 40),
-                      _buildSocialButton(
-                        icon: Icons.facebook,
-                        backgroundColor: Colors.white,
-                        iconColor: Colors.blue,
-                        onTap: () {
-                          // Handle Facebook login
-                        },
-                      ),
-                      const SizedBox(width: 40),
-                      _buildSocialButton(
-                        icon: Icons.apple,
-                        backgroundColor: Colors.white,
-                        iconColor: Colors.black,
-                        onTap: () {
-                          // Handle Apple login
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
+                      // Login/Signup Button
+                      _buildActionButton(),
+                      const SizedBox(height: 24),
 
-                  // Sign Up Link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Don't Have an account? ",
-                        style: GoogleFonts.cormorantGaramond(
-                          color: Colors.white70,
-                          fontSize: 20,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          // Navigate to sign up
+                      // Social Login Icons
+                      SocialLoginButtons(
+                        onGoogleTap: () {
+                          print('Google login tapped');
                         },
-                        child: Text(
-                          'Sign Up',
-                          style: GoogleFonts.cormorantGaramond(
-                            color: const Color(0xFFD4AF37),
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            // decoration: TextDecoration.underline,
+                        onFacebookTap: () {
+                          print('Facebook login tapped');
+                        },
+                        onAppleTap: () {
+                          print('Apple login tapped');
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Toggle between login and signup
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _isSignUpMode
+                                ? "Already have an account? "
+                                : "Don't Have an account? ",
+                            style: GoogleFonts.cormorantGaramond(
+                              color: Colors.white70,
+                              fontSize: 15,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: _toggleMode,
+                            child: Text(
+                              _isSignUpMode ? 'Log In' : 'Sign Up',
+                              style: GoogleFonts.cormorantGaramond(
+                                color: const Color(0xFFD4AF37),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Forgot Password Link (only for login)
+                      if (!_isSignUpMode)
+                        GestureDetector(
+                          onTap: () {
+                            // Navigate to forgot password
+                          },
+                          child: Text(
+                            'Forgot Password?',
+                            style: GoogleFonts.cormorantGaramond(
+                              color: const Color(0xFFD4AF37),
+                              fontSize: 15,
+                            ),
                           ),
                         ),
-                      ),
+                      
+                      // Add some bottom padding to ensure scrollability
+                      const SizedBox(height: 32),
                     ],
                   ),
-                  const SizedBox(height: 8),
-
-                  // Forgot Password Link
-                  GestureDetector(
-                    onTap: () {
-                      // Navigate to forgot password
-                    },
-                    child: Text(
-                      'Forgot Password?',
-                      style: GoogleFonts.cormorantGaramond(
-                        color: const Color(0xFFD4AF37),
-                        fontSize: 18,
-                        // decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSocialButtonWithImage({
-    required String imagePath,
-    required Color backgroundColor,
-    required VoidCallback onTap,
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 50,
-        height: 50,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFD4AF37), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+    return SizedBox(
+      height: 45,
+      child: TextField(
+        controller: controller,
+        style: const TextStyle(
+          fontSize: 16,
+          color: Colors.black,
+          fontWeight: FontWeight.normal,
         ),
-        child: Center(
-          child: Image.asset(
-            imagePath,
-            width: 28,
-            height: 28,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              return const Icon(
-                FontAwesomeIcons.google,
-                color: Colors.red,
-                size: 28,
-              );
-            },
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: GoogleFonts.cormorantGaramond(
+            fontSize: 16,
+            color: Colors.black54,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(7),
+            borderSide: const BorderSide(
+              color: Color(0xFFD4AF37),
+              width: 2,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(7),
+            borderSide: const BorderSide(
+              color: Color(0xFFD4AF37),
+              width: 2,
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSocialButton({
-    required IconData icon,
-    required Color backgroundColor,
-    required Color iconColor,
-    required VoidCallback onTap,
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String hintText,
+    required bool obscureText,
+    required VoidCallback onToggleVisibility,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 50,
-        height: 50,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFD4AF37), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+    return SizedBox(
+      height: 45,
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        style: const TextStyle(
+          fontSize: 16,
+          color: Colors.black,
+          fontWeight: FontWeight.normal,
         ),
-        child: Center(child: Icon(icon, color: iconColor, size: 28)),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: GoogleFonts.cormorantGaramond(
+            fontSize: 16,
+            color: Colors.black54,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(7),
+            borderSide: const BorderSide(
+              color: Color(0xFFD4AF37),
+              width: 2,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(7),
+            borderSide: const BorderSide(
+              color: Color(0xFFD4AF37),
+              width: 2,
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+          suffixIcon: IconButton(
+            icon: Icon(
+              obscureText ? Icons.visibility_off : Icons.visibility,
+              color: Colors.grey,
+              size: 20,
+            ),
+            onPressed: onToggleVisibility,
+          ),
+        ),
       ),
     );
+  }
+
+  Widget _buildServiceText() {
+    return RichText(
+      textAlign: TextAlign.center,
+      text: TextSpan(
+        style: GoogleFonts.cormorantGaramond(
+          color: Colors.white70,
+          fontSize: 15,
+        ),
+        children: [
+          const TextSpan(
+            text: 'People who use our service may have uploaded\nyour contact information to Myydoctor. ',
+          ),
+          TextSpan(
+            text: 'Learn More',
+            style: GoogleFonts.cormorantGaramond(
+              color: const Color(0xFFD4AF37),
+              fontSize: 14,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTermsText() {
+    return RichText(
+      textAlign: TextAlign.center,
+      text: TextSpan(
+        style: GoogleFonts.cormorantGaramond(
+          color: Colors.white70,
+          fontSize: 15,
+        ),
+        children: [
+          const TextSpan(
+            text: 'By signing up, you agree to our ',
+          ),
+          TextSpan(
+            text: 'Terms',
+            style: GoogleFonts.cormorantGaramond(
+              color: const Color(0xFFD4AF37),
+              fontSize: 14,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+          const TextSpan(text: ',\n'),
+          TextSpan(
+            text: 'Privacy Policy',
+            style: GoogleFonts.cormorantGaramond(
+              color: const Color(0xFFD4AF37),
+              fontSize: 14,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+          const TextSpan(text: ', and '),
+          TextSpan(
+            text: 'Cookies Policy',
+            style: GoogleFonts.cormorantGaramond(
+              color: const Color(0xFFD4AF37),
+              fontSize: 14,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 45,
+      child: ElevatedButton(
+        onPressed: () {
+          if (_isSignUpMode) {
+            _handleSignUp();
+          } else {
+            _handleLogin();
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF89AEBA),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(7),
+          ),
+        ),
+        child: Text(
+          _isSignUpMode ? 'Sign Up' : 'Log In',
+          style: GoogleFonts.cormorantGaramond(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleLogin() {
+    // Handle login logic
+    print('Login with username: ${_usernameController.text}');
+    print('Password: ${_passwordController.text}');
+  }
+
+  void _handleSignUp() {
+    // Handle signup logic
+    print('Sign up with email: ${_emailController.text}');
+    print('Full name: ${_fullNameController.text}');
+    print('Username: ${_usernameController.text}');
+    print('Password: ${_passwordController.text}');
+    print('Re-enter password: ${_reEnterPasswordController.text}');
+    
+    // Add validation logic here
+    if (_passwordController.text != _reEnterPasswordController.text) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
   }
 }
