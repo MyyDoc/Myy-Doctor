@@ -168,7 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       children: [
         Row(
           children: [
-            CircleAvatar(radius: 50),
+            CircleAvatar(radius: 50, backgroundImage: NetworkImage("https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc"),),
             const SizedBox(width: 15),
             Expanded(
               child: Column(
