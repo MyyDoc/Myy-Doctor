@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:myydoctor/presentation/screens/home/homescreen.dart';
 import 'package:myydoctor/presentation/widgets/auth/loginButton.dart';
 import 'package:myydoctor/presentation/widgets/auth/icons.dart';
 import 'package:myydoctor/presentation/widgets/auth/logo.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class LoginAndSignUp extends StatefulWidget {
+  const LoginAndSignUp({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<LoginAndSignUp> createState() => _LoginAndSignUpState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginAndSignUpState extends State<LoginAndSignUp> {
   // Controllers
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _reEnterPasswordController = TextEditingController();
-  
+  final TextEditingController _reEnterPasswordController =
+      TextEditingController();
+
   // State variables
   bool _obscurePassword = true;
   bool _obscureReEnterPassword = true;
@@ -58,13 +60,16 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: SafeArea(
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              const SizedBox(height: 100),
               // Fixed logo section at the top
               Container(
                 padding: const EdgeInsets.only(top: 40, bottom: 20),
                 child: const AppLogo(),
               ),
-              
+
               // Scrollable content section
               Expanded(
                 child: SingleChildScrollView(
@@ -119,7 +124,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           obscureText: _obscureReEnterPassword,
                           onToggleVisibility: () {
                             setState(() {
-                              _obscureReEnterPassword = !_obscureReEnterPassword;
+                              _obscureReEnterPassword =
+                                  !_obscureReEnterPassword;
                             });
                           },
                         ),
@@ -131,11 +137,26 @@ class _LoginScreenState extends State<LoginScreen> {
                         _buildTermsText()
                       else
                         _buildServiceText(),
-                      
+
                       const SizedBox(height: 16),
 
                       // Login/Signup Button
-                      _buildActionButton(),
+                      LoginButton(
+                        function: () {
+                          if (_isSignUpMode) {
+                            print("SIgnup clicked");
+                          } else {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => Homescreen(),
+                              ),
+                              (Route<dynamic> route) => false,
+                            );
+                          }
+                        },
+                        text: _isSignUpMode ? 'Sign Up' : 'Log In',
+                      ),
                       const SizedBox(height: 24),
 
                       // Social Login Icons
@@ -194,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                      
+
                       // Add some bottom padding to ensure scrollability
                       const SizedBox(height: 32),
                     ],
@@ -231,17 +252,11 @@ class _LoginScreenState extends State<LoginScreen> {
           fillColor: Colors.white,
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(7),
-            borderSide: const BorderSide(
-              color: Color(0xFFD4AF37),
-              width: 2,
-            ),
+            borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 2),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(7),
-            borderSide: const BorderSide(
-              color: Color(0xFFD4AF37),
-              width: 2,
-            ),
+            borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 2),
           ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -278,17 +293,11 @@ class _LoginScreenState extends State<LoginScreen> {
           fillColor: Colors.white,
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(7),
-            borderSide: const BorderSide(
-              color: Color(0xFFD4AF37),
-              width: 2,
-            ),
+            borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 2),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(7),
-            borderSide: const BorderSide(
-              color: Color(0xFFD4AF37),
-              width: 2,
-            ),
+            borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 2),
           ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -317,7 +326,8 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         children: [
           const TextSpan(
-            text: 'People who use our service may have uploaded\nyour contact information to Myydoctor. ',
+            text:
+                'People who use our service may have uploaded\nyour contact information to Myydoctor. ',
           ),
           TextSpan(
             text: 'Learn More',
@@ -341,9 +351,7 @@ class _LoginScreenState extends State<LoginScreen> {
           fontSize: 15,
         ),
         children: [
-          const TextSpan(
-            text: 'By signing up, you agree to our ',
-          ),
+          const TextSpan(text: 'By signing up, you agree to our '),
           TextSpan(
             text: 'Terms',
             style: GoogleFonts.cormorantGaramond(
@@ -375,57 +383,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildActionButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 45,
-      child: ElevatedButton(
-        onPressed: () {
-          if (_isSignUpMode) {
-            _handleSignUp();
-          } else {
-            _handleLogin();
-          }
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF89AEBA),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(7),
-          ),
-        ),
-        child: Text(
-          _isSignUpMode ? 'Sign Up' : 'Log In',
-          style: GoogleFonts.cormorantGaramond(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _handleLogin() {
-    // Handle login logic
-    print('Login with username: ${_usernameController.text}');
-    print('Password: ${_passwordController.text}');
-  }
-
-  void _handleSignUp() {
-    // Handle signup logic
-    print('Sign up with email: ${_emailController.text}');
-    print('Full name: ${_fullNameController.text}');
-    print('Username: ${_usernameController.text}');
-    print('Password: ${_passwordController.text}');
-    print('Re-enter password: ${_reEnterPasswordController.text}');
-    
-    // Add validation logic here
-    if (_passwordController.text != _reEnterPasswordController.text) {
-      // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
-      return;
-    }
-  }
 }

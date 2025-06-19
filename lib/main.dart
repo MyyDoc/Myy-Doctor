@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:myydoctor/presentation/screens/auth/onboarding.dart';
 
 void main() {
@@ -15,6 +16,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demoooooo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+         textTheme: GoogleFonts.cormorantGaramondTextTheme(),
       ),
       home: OnboardingScreen(),
     );
