@@ -234,6 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
               ],
             ),
+            const SizedBox(width: 10,),
             Expanded(child: customContainerWidget("Tele Medicine")),
             const SizedBox(width: 15),
             Text("🪙", style: TextStyle(fontSize: 22)),
