@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
-import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
+import 'package:myydoctor/presentation/screens/home/homescreen_body.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
+import 'package:myydoctor/presentation/screens/reels/reels_contents.dart';
+import 'package:myydoctor/presentation/screens/search/search_screen.dart';
+import 'package:myydoctor/presentation/widgets/common_widgets.dart';
+import 'package:myydoctor/services/location/location.dart';
 
 class Homescreen extends StatefulWidget {
   const Homescreen({super.key});
@@ -10,72 +14,63 @@ class Homescreen extends StatefulWidget {
 }
 
 class _HomescreenState extends State<Homescreen> {
+  int _currentIndex = 0;
+  String? currentCity;
+
+  final PageStorageBucket _bucket = PageStorageBucket();
+
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      String? city = await LocationService.getCurrentCity();
+      setState(() {
+        currentCity = city ?? "Kochi";
+      });
+    } catch (_) {
+      setState(() {
+        currentCity = "Kochi";
+      });
+    }
+  }
+
+  late final List<Widget> _screens = [
+    const HomescreenBody(),
+    SearchScreen(currentLoc: currentCity ?? "Kochi"),
+    const ReelsContents(),
+    const ProfileScreen(),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context); // ThemeData
-    final textTheme = Theme.of(context).textTheme; // TextTheme
-
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Color(0xFF1F323C),
-        title: Text(
-          "MyyDoctor",
-          style: textTheme.displaySmall!.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+      body: Stack(
+        children: [
+          PageStorage(
+            bucket: _bucket,
+            child: IndexedStack(index: _currentIndex, children: _screens),
           ),
-        ),
-        automaticallyImplyLeading: false,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: Icon(Icons.message_outlined, color: Colors.white, size: 30),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF1F323C), // Top
-                Color(0xFF000000), // Bottom
-              ],
+          Positioned(
+            bottom: 15,
+            right: 15,
+            left: 15,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              child: BottomNavBar(
+                currentIndex: _currentIndex,
+                onItemTapped: (index) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
+              ),
             ),
           ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(15.0),
-                child: SizedBox(
-                  height: 100,
-                  child: ListView.separated(
-                    separatorBuilder:
-                        (context, index) => const SizedBox(width: 10),
-                    scrollDirection: Axis.horizontal,
-                    itemBuilder:
-                        (context, index) => StoryCircleItem(textTheme: textTheme, index: index,),
-                    itemCount: 10,
-                  ),
-                ),
-              ),
-              ListView.separated(
-                physics: NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                itemCount: 10,
-                separatorBuilder: (context, index) => const SizedBox(height: 30,),
-                itemBuilder: (context, index) => 
-                FeedContainerItem(textTheme: textTheme)),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: Container(
-        height: 50,
-        width: double.infinity,
-        color: Color(0xFF0A1A27),
+        ],
       ),
     );
   }
