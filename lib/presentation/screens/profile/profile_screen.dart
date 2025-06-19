@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/widgets/common_widgets.dart';
+import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
+import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -8,7 +10,21 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context); // ThemeData
@@ -42,142 +58,244 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Container(
-              height: MediaQuery.of(context).size.height,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [Color(0xFFFFFFFF), Color(0xFFCDE4EA)],
-                ),
-              ),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(15.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          CircleAvatar(radius: 50),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                  children: [
-                                    // Each column holds number + label
-                                    Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          "10",
-                                          style: textTheme.titleLarge!.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 25
-                                          )
-                                        ),
-                                        Text("Posts",
-                                        style: textTheme.titleMedium!.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          )),
-                                      ],
-                                    ),
-                                    Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          "150",
-                                          style: textTheme.titleLarge!.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 25
-                                          )
-                                        ),
-                                        Text("Followers", style: textTheme.titleMedium!.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          )),
-                                      ],
-                                    ),
-                                    Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          "50",
-                                          style: textTheme.titleLarge!.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 25
-                                          )
-                                        ),
-                                        Text("Following", style: textTheme.titleMedium!.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          )),
-                                      ],
-                                    ),
-                                    Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          "80",
-                                          style: textTheme.titleLarge!.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 25
-                                          )
-                                        ),
-                                        Text("Subscribers", style: textTheme.titleMedium!.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          )),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 10,),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        alignment: Alignment.center,
-                                        height: 30,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(8),
-                                          color:  Color(0xFF1F323C),
-                                        ),
-                                        child: Text("Edit Profile", style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold),),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 15,),
-                                    Expanded(
-                                      child: Container(
-                                        alignment: Alignment.center,
-                                        height: 30,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(8),
-                                          color:  Color(0xFF1F323C),
-                                        ),
-                                        child: Text("Subscriber Chat", style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold),),
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              ],
-                            ),
-                          ),
-                        ],
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  // Profile details section
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [Color(0xFFFFFFFF), Color(0xFFCDE4EA)],
                       ),
-                      Row(
-                        children: [
-
-                        ],
-                      )
-                    ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(15.0),
+                      child: profileDetailsMainContainer(textTheme, context),
+                    ),
                   ),
-                ),
+
+                  // Tab bar
+                  Container(
+                    color: Color(0xFF1F323C),
+                    child: TabBar(
+                      controller: _tabController,
+                      labelColor: Colors.black,
+                      tabs: [
+                        Tab(
+                          child: Icon(
+                            Icons.grid_view_rounded,
+                            color: Color(0xFFD4AF37),
+                            size: 32,
+                          ),
+                        ),
+                        Tab(
+                          child: Icon(
+                            Icons.list_rounded,
+                            color: Color(0xFFD4AF37),
+                            size: 40,
+                          ),
+                        ),
+                        Tab(
+                          child: Icon(
+                            Icons.bookmark,
+                            color: Color(0xFFD4AF37),
+                            size: 32,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
+          ];
+        },
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            // Tab 1: Feed items
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF1F323C), // Top
+                    Color(0xFF000000), // Bottom
+                  ],
+                ),
+              ),
+              child: ListView.separated(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                itemCount: 10,
+                separatorBuilder: (context, index) => const SizedBox(height: 30),
+                itemBuilder:
+                    (context, index) => FeedContainerItem(textTheme: textTheme),
+              ),
+            ),
+
+            // Tab 2: Content 2
+            ListView(
+              children: [
+                for (int i = 0; i < 20; i++)
+                  ListTile(title: Text("Content 2 Item ${i + 1}")),
+              ],
+            ),
+
+            // Tab 3: Content 3
+            ListView(
+              children: [
+                for (int i = 0; i < 15; i++)
+                  ListTile(title: Text("Bookmark Item ${i + 1}")),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Column profileDetailsMainContainer(
+    TextTheme textTheme,
+    BuildContext context,
+  ) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            CircleAvatar(radius: 50),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      profileDetailsCounts(textTheme, "10", "Posts"),
+                      profileDetailsCounts(textTheme, "150", "Followers"),
+                      profileDetailsCounts(textTheme, "50", "Following"),
+                      profileDetailsCounts(textTheme, "80", "Subscribers"),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: customContainerWidget("Edit Profile")),
+                      const SizedBox(width: 10),
+                      Expanded(child: customContainerWidget("Subscriber Chat")),
+                      const SizedBox(width: 15),
+                      Icon(
+                        Icons.person_add_alt,
+                        color: Color(0xFFD4AF37),
+                        size: 29,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 15),
+        Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      "Dr. Antony Max",
+                      style: textTheme.titleLarge!.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(
+                      height: 30,
+                      width: 40,
+                      child: Image.asset(
+                        "assets/images/8ad19fdbc58af4bd5b0a3f9441f03fe5c09755ca.png",
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ],
+                ),
+                Text("@antonymax"),
+                Text(
+                  "Developer of myydoc",
+                  style: textTheme.bodyLarge!.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            Expanded(child: customContainerWidget("Tele Medicine")),
+            const SizedBox(width: 15),
+            Text("🪙", style: TextStyle(fontSize: 22)),
+            const SizedBox(width: 5),
+            Text(
+              "256",
+              style: textTheme.titleLarge!.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 15),
+        SizedBox(
+          height: 100,
+          child: ListView.separated(
+            separatorBuilder: (context, index) => const SizedBox(width: 10),
+            scrollDirection: Axis.horizontal,
+            itemBuilder:
+                (context, index) => StoryCircleItem(
+                  isFromProfile: true,
+                  textTheme: textTheme,
+                  index: index,
+                ),
+            itemCount: 10,
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Column profileDetailsCounts(TextTheme textTheme, String count, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          count,
+          style: textTheme.titleLarge!.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: 25,
+          ),
+        ),
+        Text(
+          label,
+          style: textTheme.titleMedium!.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Container customContainerWidget(String text) {
+    return Container(
+      alignment: Alignment.center,
+      height: 30,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: Color(0xFF1F323C),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold),
       ),
     );
   }

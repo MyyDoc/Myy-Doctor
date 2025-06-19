@@ -59,6 +59,7 @@ class _HomescreenBodyState extends State<HomescreenBody> {
                         scrollDirection: Axis.horizontal,
                         itemBuilder:
                             (context, index) => StoryCircleItem(
+                              isFromProfile: false,
                               textTheme: textTheme,
                               index: index,
                             ),
