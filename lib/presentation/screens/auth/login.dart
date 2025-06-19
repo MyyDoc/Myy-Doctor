@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:myydoctor/presentation/widgets/auth/loginButton.dart';
 import 'package:myydoctor/presentation/widgets/auth/icons.dart';
 import 'package:myydoctor/presentation/widgets/auth/logo.dart';
+import 'package:myydoctor/presentation/screens/payment/payment.dart'; // Add this import
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -427,5 +428,13 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       return;
     }
+    
+    // Navigate to payment screen after successful signup validation
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const PaymentScreen(), // Make sure your payment screen class name matches this
+      ),
+    );
   }
 }
