@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/widgets/common_widgets.dart';
 import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
+import 'package:myydoctor/presentation/widgets/profile/goto_payment_container.dart';
+import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -118,7 +120,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            // Tab 1: Feed items
             Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
@@ -133,27 +134,35 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: ListView.separated(
                 padding: EdgeInsets.symmetric(vertical: 10),
                 itemCount: 10,
-                separatorBuilder: (context, index) => const SizedBox(height: 30),
+                separatorBuilder:
+                    (context, index) => const SizedBox(height: 30),
                 itemBuilder:
                     (context, index) => FeedContainerItem(textTheme: textTheme),
               ),
             ),
 
             // Tab 2: Content 2
-            ListView(
-              children: [
-                for (int i = 0; i < 20; i++)
-                  ListTile(title: Text("Content 2 Item ${i + 1}")),
-              ],
+            ListView.separated(
+              itemBuilder:
+                  (context, index) =>
+                      index == 0
+                          ? PaymentPosterContainer(textTheme: textTheme)
+                          : ListTile(
+                            leading: Icon(
+                              Icons.ac_unit_sharp,
+                              color: Colors.grey,
+                            ),
+                            title: Text("Menu Title $index"),
+                            trailing: Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              color: Colors.grey,
+                            ),
+                          ),
+              separatorBuilder: (context, index) => const SizedBox(height: 5),
+              itemCount: 10,
             ),
 
-            // Tab 3: Content 3
-            ListView(
-              children: [
-                for (int i = 0; i < 15; i++)
-                  ListTile(title: Text("Bookmark Item ${i + 1}")),
-              ],
-            ),
+            SavedContents(),
           ],
         ),
       ),
@@ -168,7 +177,12 @@ class _ProfileScreenState extends State<ProfileScreen>
       children: [
         Row(
           children: [
-            CircleAvatar(radius: 50, backgroundImage: NetworkImage("https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc"),),
+            CircleAvatar(
+              radius: 50,
+              backgroundImage: NetworkImage(
+                "https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc",
+              ),
+            ),
             const SizedBox(width: 15),
             Expanded(
               child: Column(
@@ -234,7 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
               ],
             ),
-            const SizedBox(width: 10,),
+            const SizedBox(width: 10),
             Expanded(child: customContainerWidget("Tele Medicine")),
             const SizedBox(width: 15),
             Text("🪙", style: TextStyle(fontSize: 22)),
