@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/widgets/profile/saved_feeds_detailed_screen.dart';
 
 class SavedContents extends StatelessWidget {
   const SavedContents({
@@ -17,12 +18,17 @@ class SavedContents extends StatelessWidget {
       ),
       itemCount: 14, 
       itemBuilder: (context, index) {
-        return Container(
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.amber,
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => SavedFeedsDetailedScreen(),));
+          },
+          child: Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.amber,
+            ),
+            child: Text("Item $index"),
           ),
-          child: Text("Item $index"),
         );
       },
     );
