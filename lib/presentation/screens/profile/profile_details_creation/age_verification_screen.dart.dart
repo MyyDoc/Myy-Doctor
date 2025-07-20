@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/profile_selection_screen.dart';
 
 class AgeVerificationScreen extends StatefulWidget {
   const AgeVerificationScreen({super.key});
@@ -48,7 +49,7 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/profile-type');
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileTypeScreen(),));
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE6BA63),

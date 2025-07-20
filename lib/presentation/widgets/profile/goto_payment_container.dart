@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/payment/payment.dart';
 
 class PaymentPosterContainer extends StatelessWidget {
   const PaymentPosterContainer({
@@ -131,7 +132,12 @@ class PaymentPosterContainer extends StatelessWidget {
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
-                      print("payment clicked");
+                      Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const PaymentScreen(),
+                              ),
+                            );
                     },
                     child: Container(
                       alignment: Alignment.center,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:myydoctor/presentation/screens/home/homescreen.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/selfie_screen.dart';
 import 'package:myydoctor/presentation/widgets/auth/loginButton.dart';
 import 'package:myydoctor/presentation/widgets/auth/icons.dart';
 import 'package:myydoctor/presentation/widgets/auth/logo.dart';
@@ -145,14 +146,7 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                       LoginButton(
                         function: () {
                           if (_isSignUpMode) {
-                            // Navigate to PaymentScreen when signup is clicked
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const PaymentScreen(),
-                              ),
-                            );
-                            print("Signup clicked - Navigating to Payment Screen");
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => SelfieScreen(),));
                           } else {
                             Navigator.pushAndRemoveUntil(
                               context,

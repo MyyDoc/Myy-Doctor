@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/age_verification_screen.dart.dart';
 
 class SelfieScreen extends StatelessWidget {
   const SelfieScreen({super.key});
@@ -39,7 +40,7 @@ class SelfieScreen extends StatelessWidget {
                       style: TextStyle(
                         fontFamily: 'EB Garamond',
                         fontWeight: FontWeight.w400,
-                        fontSize: 30,
+                        fontSize: 22,
                         color: Color(0xFFE6BA63),
                         height: 1.0,
                       ),
@@ -47,7 +48,7 @@ class SelfieScreen extends StatelessWidget {
                     const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.pushNamed(context, '/age-verification');
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => AgeVerificationScreen(),));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE6BA63),
