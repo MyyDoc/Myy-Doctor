@@ -1,65 +1,97 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/age_verification_screen.dart.dart';
-
-class SelfieScreen extends StatelessWidget {
+import 'package:myydoctor/presentation/widgets/colours.dart';
+class SelfieScreen extends StatefulWidget {
   const SelfieScreen({super.key});
 
   @override
+  State<SelfieScreen> createState() => _SelfieScreenState();
+}
+
+class _SelfieScreenState extends State<SelfieScreen> {
+  Timer? timer;
+  @override
+  void dispose() {
+    if(timer != null){
+      timer?.cancel();
+      timer = null;
+    }
+    super.dispose();
+  }
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF172832),
-      body: SafeArea(
-        child: Stack(
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final ovalWidth = screenWidth * 0.6; // 60% of screen width
+    final ovalHeight = screenHeight * 0.5; // 40% of screen height
+    final borderSize = 5.0;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.darkBlue, AppColors.darkBlue],
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Positioned(
-              top: 154,
-              left: 64,
-              child: Container(
-                width: 300,
-                height: 500,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD9D9D9),
-                  border: Border.all(
-                    color: const Color(0xFFE6BA63),
-                    width: 3,
-                  ),
-                  borderRadius: BorderRadius.circular(150),
-                ),
-              ),
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 64),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+            Center(
+              child: InkWell(
+                onTap: ()async{
+                  // final ImagePicker picker = ImagePicker();
+                  // XFile? image = await picker.pickImage(source: ImageSource.camera,preferredCameraDevice: CameraDevice.front);
+                  // if(image != null){
+                  //   context.read<ImageSelectorProvider>().setImagePath(image.path);
+                  //   timer = Timer(Duration(seconds: 3), (){
+                  //     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_)=> ProfileAddingScreen(imagePath: image.path,)));
+                  //   });
+                  // }
+                  Navigator.push(context, MaterialPageRoute(builder: (_)=> AgeVerificationScreen()));
+                },
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    const Text(
-                      "Adjust your face to fill up the bubble\nHold the pose for 3 seconds",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'EB Garamond',
-                        fontWeight: FontWeight.w400,
-                        fontSize: 22,
-                        color: Color(0xFFE6BA63),
-                        height: 1.0,
+                    // Outer oval (border)
+                    ClipOval(
+                      child: Container(
+                        width: ovalWidth + borderSize * 2,
+                        height: ovalHeight + borderSize * 2,
+                        color: AppColors.gold,
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => AgeVerificationScreen(),));
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE6BA63),
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                      ),
-                      child: const Text("Capture Selfie"),
+                    // Inner oval (content)
+                    ClipOval(
+                      child:  Container(
+                        width: ovalWidth,
+                        height: ovalHeight,
+                        color: Colors.white,
+                        child: Center(
+                          child: Text(
+                            'Selfie',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      )
                     ),
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Click on the selfie to add an image',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 21,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
