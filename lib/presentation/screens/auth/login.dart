@@ -5,6 +5,7 @@ import 'package:myydoctor/presentation/screens/home/homescreen.dart';
 import 'package:myydoctor/presentation/widgets/auth/loginButton.dart';
 import 'package:myydoctor/presentation/widgets/auth/icons.dart';
 import 'package:myydoctor/presentation/widgets/auth/logo.dart';
+import 'package:myydoctor/presentation/screens/payment/payment.dart';
 
 class LoginAndSignUp extends StatefulWidget {
   const LoginAndSignUp({super.key});
@@ -144,7 +145,14 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                       LoginButton(
                         function: () {
                           if (_isSignUpMode) {
-                            print("SIgnup clicked");
+                            // Navigate to PaymentScreen when signup is clicked
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const PaymentScreen(),
+                              ),
+                            );
+                            print("Signup clicked - Navigating to Payment Screen");
                           } else {
                             Navigator.pushAndRemoveUntil(
                               context,
@@ -382,5 +390,4 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
       ),
     );
   }
-
 }
