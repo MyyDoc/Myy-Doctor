@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
 import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
 
@@ -29,7 +30,9 @@ class _HomescreenBodyState extends State<HomescreenBody> {
         actions: [
           Padding(
             padding: const EdgeInsets.all(15.0),
-            child: Icon(Icons.message_outlined, color: Colors.white, size: 30),
+            child: GestureDetector(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ChatListScreen(),)),
+              child: Icon(Icons.message_outlined, color: Colors.white, size: 30)),
           ),
         ],
       ),

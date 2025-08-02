@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 import 'package:myydoctor/presentation/widgets/search/dropdown.dart';
 import 'package:myydoctor/services/doctors_list.dart';
 import 'package:myydoctor/services/location/doctors_location.dart';
@@ -144,7 +145,7 @@ class _SearchScreenState extends State<SearchScreen> {
           onTap: () {
             _showBottomSheet(context);
           },
-          child: Icon(Icons.settings, color: Colors.white, size: 32)),
+          child: Icon(Icons.format_list_bulleted_add, color:  Color(0xFFD4AF37), size: 32)),
         title: Container(
           alignment: Alignment.center,
           height: 40,
@@ -288,8 +289,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                           trailing: Icon(Icons.arrow_forward_ios, size: 16),
                           onTap: () {
-                            // Navigate to doctor details
-                            print('Tapped on ${doctor['name']}');
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(),));
                           },
                         );
                       },
