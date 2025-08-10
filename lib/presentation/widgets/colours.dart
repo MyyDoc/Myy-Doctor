@@ -9,5 +9,11 @@ class AppColors {
   static const Color titleText = Colors.white;
   static const Color buttonText = Colors.white;
   static Color gold = const Color.fromARGB(255, 189, 170, 0);
+  static Color black = Colors.black;
+  static Color caramel = const Color.fromARGB(255, 255, 204, 153);
+  static Color grey = const Color.fromARGB(255, 128, 128, 128);
+  static Color scaffoldWhite = const Color.fromARGB(255, 235, 235, 235);
+  static Color red = Colors.red;
+  static Color green = Colors.green;
+  static Color white = Colors.white;
 }
-

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myydoctor/presentation/screens/auth/onboarding.dart';
 import 'package:myydoctor/presentation/screens/auth/splash_screen.dart';
 
 void main() {
