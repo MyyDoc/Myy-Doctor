@@ -4,12 +4,12 @@ import 'package:myydoctor/presentation/widgets/chat/call_list_widget.dart';
 
 class ChatTileWidget extends StatelessWidget {
   final List<ChatItem> chats = [
-    ChatItem('John Doe', 'Hey, how are you doing?', '2:30 PM', true),
+    ChatItem('Dr.John Doe', 'Hey, how are you doing?', '2:30 PM', true),
     ChatItem('Jane Smith', 'Can we meet tomorrow?', '1:45 PM', false),
-    ChatItem('Mike Johnson', 'Thanks for the help!', '12:20 PM', false),
+    ChatItem('Dr.Mike Johnson', 'Thanks for the help!', '12:20 PM', false),
     ChatItem('Sarah Wilson', 'See you at the conference', '11:30 AM', true),
     ChatItem('David Brown', 'The project looks great', '10:15 AM', false),
-    ChatItem('Emily Davis', 'Happy birthday! 🎉', 'Yesterday', true),
+    ChatItem('Dr.Emily Davis', 'Happy birthday! 🎉', 'Yesterday', true),
     ChatItem('Alex Miller', 'Are you free this weekend?', 'Yesterday', false),
     ChatItem('Lisa Garcia', 'Check out this article', 'Monday', false),
   ];
@@ -35,19 +35,17 @@ class ChatTileWidget extends StatelessWidget {
           title: Text(
             chat.name,
             style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
+              color:
+                  chat.name.startsWith("Dr") ? Color(0xFFD4AF37) : Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
             ),
           ),
           subtitle: Text(
             chat.message,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.grey.shade300,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Colors.black, fontSize: 14),
           ),
           trailing: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -55,10 +53,7 @@ class ChatTileWidget extends StatelessWidget {
             children: [
               Text(
                 chat.time,
-                style: TextStyle(
-                  color: Colors.grey.shade300,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.black, fontSize: 12),
               ),
               if (chat.hasUnread)
                 Container(
@@ -73,7 +68,10 @@ class ChatTileWidget extends StatelessWidget {
             ],
           ),
           onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ChatScreen(),));
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ChatScreen()),
+            );
           },
         );
       },

@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 class CallsScreen extends StatelessWidget {
   final List<CallItem> calls = [
-    CallItem('John Doe', CallType.incoming, '2:30 PM', true),
+    CallItem('Dr.John Doe', CallType.incoming, '2:30 PM', true),
     CallItem('Jane Smith', CallType.outgoing, '1:45 PM', false),
     CallItem('Mike Johnson', CallType.missed, '12:20 PM', false),
-    CallItem('Sarah Wilson', CallType.incoming, '11:30 AM', true),
+    CallItem('Dr.Sarah Wilson', CallType.incoming, '11:30 AM', true),
     CallItem('David Brown', CallType.outgoing, '10:15 AM', true),
-    CallItem('Emily Davis', CallType.incoming, 'Yesterday', true),
+    CallItem('Dr.Emily Davis', CallType.incoming, 'Yesterday', true),
     CallItem('Alex Miller', CallType.missed, 'Yesterday', false),
     CallItem('Lisa Garcia', CallType.outgoing, 'Monday', true),
   ];
@@ -32,9 +32,9 @@ class CallsScreen extends StatelessWidget {
           title: Text(
             call.name,
             style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-              color: call.type == CallType.missed ? Colors.red : Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              color: call.type == CallType.missed ? Colors.red : call.name.startsWith("Dr") ? Color(0xFFD4AF37) : Colors.black,
             ),
           ),
           subtitle: Row(
@@ -48,7 +48,7 @@ class CallsScreen extends StatelessWidget {
               Text(
                 call.time,
                 style: TextStyle(
-                  color: Colors.grey.shade300,
+                  color: Colors.black,
                   fontSize: 14,
                 ),
               ),

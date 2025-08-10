@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/widgets/chat/call_list_widget.dart';
 import 'package:myydoctor/presentation/widgets/chat/chat_list_widget.dart';
+import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -9,14 +10,15 @@ class ChatListScreen extends StatefulWidget {
   State<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProviderStateMixin {
-
-    late TabController _tabController;
+class _ChatListScreenState extends State<ChatListScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  bool searchClicked = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -29,102 +31,133 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         leading: GestureDetector(
           onTap: () => Navigator.pop(context),
-          child: Icon(Icons.arrow_back_ios_new, color: Colors.white,)),
+          child: Icon(Icons.arrow_back_ios_new, color: Colors.white),
+        ),
         backgroundColor: Color(0xFF1F323C),
         title: Text(
-          "MyyDoctor",
-          style: textTheme.displaySmall!.copyWith(
+          "Rahuljaicsam",
+          style: textTheme.headlineMedium!.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
-        
+        actions: [
+          searchClicked ? IconButton(
+            icon: Icon(Icons.close, color: Colors.white, size: 30),
+            onPressed: () => setState(() {
+              searchClicked = false;
+            }),
+          ) :
+          IconButton(
+            padding: EdgeInsets.only(right: 15),
+            icon: Icon(Icons.search, color: Colors.white, size: 30),
+            onPressed:
+                () => setState(() {
+                  searchClicked = true;
+                }),
+          ),
+        ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF1F323C), // Top
-                      Color(0xFF000000), // Bottom
-                    ],
-                  ),
-                ),
-        child: Column(
-          children: [
-           
-            TabBar(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            color: Color(0xFF1F323C),
+            child: TabBar(
               controller: _tabController,
-              indicatorColor: Colors.white,
+              indicatorColor: Colors.grey,
               indicatorWeight: 3,
               labelColor: Colors.white,
-              unselectedLabelColor: Colors.white70,
-              labelStyle: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              unselectedLabelColor: Colors.grey,
+              labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               tabs: [
-                Tab(
-                  icon: Icon(Icons.chat_bubble_outline),
-                  text: 'Chats',
-                ),
-                Tab(
-                  icon: Icon(Icons.call_outlined),
-                  text: 'Calls',
-                ),
+                Tab(icon: Icon(Icons.chat_bubble_outline)),
+                Tab(icon: Icon(Icons.groups_outlined)),
+                Tab(icon: Icon(Icons.call_outlined)),
               ],
             ),
+          ),
+          if (searchClicked)
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(color: Colors.grey.shade300),
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color.fromARGB(255, 215, 176, 85),
+                        Colors.grey.shade300,
+                        Color.fromARGB(255, 215, 176, 85),
+                      ],
+                      stops: [0.0, 0.5, 1.0],
+                    ),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'SEARCH MESSAGES',
+                      hintStyle: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
                       ),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.search,
-                                     color: Colors.grey.shade600),
-                            onPressed: () {},
-                          ),
-                          Expanded(
-                            child: TextField(
-                              decoration: InputDecoration(
-                                hintText: 'Search a chat',
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 10),
-                              ),
-                              maxLines: null,
-                            ),
-                          ),
-                          
-                        ],
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.grey[600],
+                        size: 20,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
             ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  ChatTileWidget(),
-                  CallsScreen(),
-                ],
+          if (searchClicked) Padding(
+            padding: const EdgeInsets.only(left: 15, top: 10),
+            child: Text("Visitors", textAlign: TextAlign.left, ),
+          ),
+          if (searchClicked)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+              color: Colors.white,
+              height: 130,
+              child: ListView.separated(
+                separatorBuilder: (context, index) => const SizedBox(width: 10),
+                scrollDirection: Axis.horizontal,
+                itemBuilder:
+                    (context, index) => StoryCircleItem(
+                      isFromProfile: false,
+                      textTheme: textTheme,
+                      index: index,
+                    ),
+                itemCount: 10,
               ),
             ),
-          ],
-        ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                Container(color: Colors.white, child: ChatTileWidget()),
+                Container(
+                  color: Colors.white,
+                  child: Center(child: Text("Groups will be here")),
+                ),
+                Container(color: Colors.white, child: CallsScreen()),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

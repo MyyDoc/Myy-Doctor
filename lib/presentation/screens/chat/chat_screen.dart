@@ -108,31 +108,14 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           actions: [
             IconButton(
-              icon: Icon(Icons.videocam, color: Colors.white),
-              onPressed: () {},
-            ),
-            IconButton(
-              icon: Icon(Icons.call, color: Colors.white),
-              onPressed: () {},
-            ),
-            IconButton(
-              icon: Icon(Icons.more_vert, color: Colors.white),
+              icon: Icon(Icons.flag_outlined, color: Colors.white),
               onPressed: () {},
             ),
           ],
         ),
       ),
       body: Container(
-         decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF1F323C), // Top
-                    Color(0xFF000000), // Bottom
-                  ],
-                ),
-              ),
+        color: Colors.white,
         child: Column(
           children: [
             Expanded(
@@ -147,7 +130,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             Container(
               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              color: Colors.black,
               child: Row(
                 children: [
                   Expanded(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
 import 'package:myydoctor/presentation/widgets/common_widgets.dart';
 import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
@@ -50,12 +51,15 @@ class _ProfileScreenState extends State<ProfileScreen>
         automaticallyImplyLeading: false,
         actions: [
           Icon(Icons.add_box_outlined, color: Color(0xFFD4AF37), size: 30),
-          Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: Icon(
-              Icons.message_outlined,
-              color: Color(0xFFD4AF37),
-              size: 30,
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ChatListScreen(),)),
+            child: Padding(
+              padding: const EdgeInsets.all(15.0),
+              child: Icon(
+                Icons.message_outlined,
+                color: Color(0xFFD4AF37),
+                size: 30,
+              ),
             ),
           ),
         ],
