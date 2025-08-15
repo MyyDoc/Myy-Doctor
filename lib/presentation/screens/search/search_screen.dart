@@ -20,34 +20,42 @@ class _SearchScreenState extends State<SearchScreen> {
   String? errorMessage;
   String? selectedSpecialization;
   String searchQuery = "";
+  bool showSwipes = false;
 
   final DoctorsList doctorsList = DoctorsList();
   List<Map<String, String>> filteredDoctors = [];
   final DoctorSearchService searchService = DoctorSearchService();
 
- 
-
-   void _filterDoctors() {
+  void _filterDoctors() {
     setState(() {
-      filteredDoctors = doctorsList.docList.where((doctor) {
-        bool matchesSpecialization = selectedSpecialization == null || 
-            doctor['specializedIn'] == selectedSpecialization;
-        
-        bool matchesLocation = currentCity == null || 
-            doctor['location'] == currentCity;
-        
-        bool matchesSearch = searchQuery.isEmpty ||
-            doctor['name']!.toLowerCase().contains(searchQuery.toLowerCase()) ||
-            doctor['specializedIn']!.toLowerCase().contains(searchQuery.toLowerCase()) ||
-            doctor['location']!.toLowerCase().contains(searchQuery.toLowerCase());
+      filteredDoctors =
+          doctorsList.docList.where((doctor) {
+            bool matchesSpecialization =
+                selectedSpecialization == null ||
+                doctor['specializedIn'] == selectedSpecialization;
 
-        return matchesSpecialization && matchesLocation && matchesSearch;
-      }).toList();
+            bool matchesLocation =
+                currentCity == null || doctor['location'] == currentCity;
+
+            bool matchesSearch =
+                searchQuery.isEmpty ||
+                doctor['name']!.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                doctor['specializedIn']!.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                doctor['location']!.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                );
+
+            return matchesSpecialization && matchesLocation && matchesSearch;
+          }).toList();
     });
   }
 
-    void _searchDoctors() {
-      print("location from prev ${widget.currentLoc}");
+  void _searchDoctors() {
+    print("location from prev ${widget.currentLoc}");
     setState(() {
       filteredDoctors = searchService.searchDoctorsByLocation(
         currentLocation: currentCity ?? widget.currentLoc,
@@ -55,9 +63,9 @@ class _SearchScreenState extends State<SearchScreen> {
         specialization: selectedSpecialization,
       );
     });
-    }
+  }
 
-    void _resetSearch() {
+  void _resetSearch() {
     setState(() {
       selectedSpecialization = null;
       searchQuery = "";
@@ -94,7 +102,6 @@ class _SearchScreenState extends State<SearchScreen> {
     return count;
   }
 
-
   // Reset all filters
   void _resetFilters() {
     setState(() {
@@ -105,7 +112,10 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  Widget _buildFilterChip({required String label, required VoidCallback onDeleted}) {
+  Widget _buildFilterChip({
+    required String label,
+    required VoidCallback onDeleted,
+  }) {
     return Container(
       margin: EdgeInsets.only(right: 8),
       child: Chip(
@@ -124,20 +134,27 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         actions: [
-          // Filter count badge
-          if (selectedSpecialization != null || currentCity != null)
-            Container(
-              margin: EdgeInsets.only(right: 8),
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.orange,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Text(
-                '${_getActiveFiltersCount()}',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
+          GestureDetector(
+            onTap: () {
+              showDialog(context: context, builder: (context) => Padding(
+                padding: const EdgeInsets.all(30.0),
+                child: AlertDialog(
+                  insetPadding: EdgeInsets.zero,
+                  contentPadding: EdgeInsets.zero,
+                  content: Container(
+                    height: MediaQuery.of(context).size.height,
+                    width: double.infinity,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: Image.asset("assets/images/searchswipes0.jpg", fit: BoxFit.cover,))),
+                ),
+              ),);
+            },
+            child: Padding(
+              padding: const EdgeInsets.only(right: 15),
+              child: Icon(Icons.format_indent_decrease_rounded, color: Colors.amber,),
             ),
+          )
         ],
         backgroundColor: Color(0xFF1F323C),
         automaticallyImplyLeading: false,
@@ -145,316 +162,79 @@ class _SearchScreenState extends State<SearchScreen> {
           onTap: () {
             _showBottomSheet(context);
           },
-          child: Icon(Icons.format_list_bulleted_add, color:  Color(0xFFD4AF37), size: 32)),
-        title: Container(
-          alignment: Alignment.center,
-          height: 40,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
+          child: Icon(
+            Icons.format_list_bulleted_add,
+            color: Color(0xFFD4AF37),
+            size: 32,
           ),
-          child: Padding(
-            padding: const EdgeInsets.only(left: 15, right: 15, bottom: 10),
-            child: Center(
-              child: TextField(
-                onChanged: (value) {
-                searchQuery = value;
-               _searchDoctors(); 
-               
-              },
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  hintText: 'Search',
-                  hintStyle: textTheme.bodyMedium!.copyWith(color: Colors.grey)
+        ),
+        title: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.fromARGB(255, 108, 105, 99),
+                  Colors.grey.shade300,
+                  Color.fromARGB(255, 108, 105, 99),
+                ],
+                stops: [0.0, 0.5, 1.0],
+              ),
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'SEARCH',
+                hintStyle: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: Colors.grey[600],
+                  size: 20,
+                ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
               ),
             ),
           ),
         ),
       ),
-      body: Column(
-        children: [
-          if (selectedSpecialization != null || currentCity != null)
-            Container(
-              padding: EdgeInsets.all(8),
-              color: Colors.grey.shade100,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    if (selectedSpecialization != null)
-                      _buildFilterChip(
-                        label: selectedSpecialization!,
-                        onDeleted: () {
-                          setState(() {
-                            selectedSpecialization = null;
-                          });
-                          _searchDoctors(); 
-                        },
-                      ),
-                    if (currentCity != null)
-                      _buildFilterChip(
-                        label: currentCity!,
-                        onDeleted: () {
-                          setState(() {
-                            currentCity = null;
-                          });
-                          _searchDoctors(); 
-                        },
-                      ),
-                    TextButton.icon(
-                      onPressed: _resetFilters,
-                      icon: Icon(Icons.clear_all, size: 18),
-                      label: Text('Clear All'),
-                      style: TextButton.styleFrom(foregroundColor: Colors.red),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            Padding(
-            padding: EdgeInsets.all(15),
-            child: Row(
-              children: [
-                Text(
-                  '${filteredDoctors.length} doctor${filteredDoctors.length == 1 ? '' : 's'} found',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          Expanded(
-            child: filteredDoctors.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search_off, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'No doctors found',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                        Text(
-                          'Try adjusting your filters',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _resetFilters,
-                          child: Text('Reset Filters'),
-                        ),
-                      ],
-                    ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15.0),
-                    child: ListView.separated(
-                      itemBuilder: (context, index) {
-                        final doctor = filteredDoctors[index];
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: CircleAvatar(
-                            backgroundColor: Color(0xFF1F323C),
-                            child: Text(
-                              doctor['name']![4], // Gets first letter after "Dr. "
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          title: Text(
-                            doctor['name']!,
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(doctor['specializedIn']!),
-                              Row(
-                                children: [
-                                  Icon(Icons.location_on, size: 14, color: Colors.grey),
-                                  SizedBox(width: 4),
-                                  Text(doctor['location']!, style: TextStyle(color: Colors.grey)),
-                                ],
-                              ),
-                            ],
-                          ),
-                          trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(),));
-                          },
-                        );
-                      },
-                      separatorBuilder: (context, index) => const Divider(
-                        color: Color.fromARGB(255, 221, 220, 220),
-                      ),
-                      itemCount: filteredDoctors.length,
-                    ),
-                  ),
-          ),
-        ],
-      ),
+      body: SizedBox(
+        height: MediaQuery.of(context).size.height,
+        width: double.infinity,
+        child: Image.asset(
+          "assets/images/searchswipes1.png",
+          fit: BoxFit.cover
+        ),
+      )
     );
   }
 
   void _showBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
       ),
       backgroundColor: Colors.white,
       builder: (context) {
-        // Use StatefulBuilder to manage state within the bottom sheet
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return Padding(
-              padding: const EdgeInsets.all(15.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Title
-                    Text(
-                      'Filter Options',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // Specialization Dropdown
-                    MedicalSpecializationDropdown(
-                      selectedValue: selectedSpecialization,
-                      onChanged: (String? value) {
-                        // Update both the parent state and modal state
-                        setState(() {
-                          selectedSpecialization = value;
-                        });
-                        setModalState(() {
-                          selectedSpecialization = value;
-                        });
-                        print('Selected: $value');
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // Location Section
-                    Row(
-                      children: [
-                        Icon(Icons.location_on, color: Colors.blue),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Your current location:',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const Spacer(),
-                        // Refresh button
-                        IconButton(
-                          onPressed: () async {
-                            setModalState(() {
-                              isLoading = true;
-                            });
-                            await _getCurrentLocation();
-                            setModalState(() {
-                              isLoading = false;
-                            });
-                          },
-                          icon: Icon(Icons.refresh),
-                          tooltip: 'Refresh location',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    
-                    // Location Display
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: isLoading
-                          ? Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                                const SizedBox(width: 12),
-                                Text('Getting location...'),
-                              ],
-                            )
-                          : Text(
-                              currentCity ?? "Location not available",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: currentCity != null ? Colors.black : Colors.grey,
-                              ),
-                            ),
-                    ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // Action Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              // Reset filters
-                              setState(() {
-                                selectedSpecialization = null;
-                              });
-                              setModalState(() {
-                                selectedSpecialization = null;
-                              });
-                            },
-                            child: Text('Reset'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              _filterDoctors();
-                            Navigator.pop(context);
-                              print('Applying filters:');
-                              print('Specialization: $selectedSpecialization');
-                              print('Location: $currentCity');
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF1F323C),
-                              foregroundColor: Colors.white,
-                            ),
-                            child: Text('Apply Filters'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+          child: Container(
+            width: double.infinity,
+            child: Image.asset(
+              "assets/images/searchswipes2.jpg",
+              fit: BoxFit.cover,
+            ),
+          ),
         );
       },
     );

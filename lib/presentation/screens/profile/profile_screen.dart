@@ -5,6 +5,7 @@ import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
 import 'package:myydoctor/presentation/widgets/profile/goto_payment_container.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
+import 'package:myydoctor/presentation/widgets/profile/vip.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -52,7 +53,11 @@ class _ProfileScreenState extends State<ProfileScreen>
         actions: [
           Icon(Icons.add_box_outlined, color: Color(0xFFD4AF37), size: 30),
           GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ChatListScreen(),)),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ChatListScreen()),
+                ),
             child: Padding(
               padding: const EdgeInsets.all(15.0),
               child: Icon(
@@ -145,25 +150,11 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
 
-            // Tab 2: Content 2
-            ListView.separated(
-              itemBuilder:
-                  (context, index) =>
-                      index == 0
-                          ? PaymentPosterContainer(textTheme: textTheme)
-                          : ListTile(
-                            leading: Icon(
-                              Icons.ac_unit_sharp,
-                              color: Colors.grey,
-                            ),
-                            title: Text("Menu Title $index"),
-                            trailing: Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              color: Colors.grey,
-                            ),
-                          ),
-              separatorBuilder: (context, index) => const SizedBox(height: 5),
-              itemCount: 10,
+            Column(
+              children: [
+                PaymentPosterContainer(textTheme: textTheme),
+                Expanded(child: VipPrivilages()),
+              ],
             ),
 
             SavedContents(),
