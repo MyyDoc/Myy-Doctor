@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
+import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
 import 'package:myydoctor/presentation/widgets/common_widgets.dart';
 import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
@@ -183,7 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: Column(
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       profileDetailsCounts(textTheme, "10", "Posts"),
                       profileDetailsCounts(textTheme, "150", "Followers"),
@@ -244,7 +245,18 @@ class _ProfileScreenState extends State<ProfileScreen>
               ],
             ),
             const SizedBox(width: 10),
-            Expanded(child: customContainerWidget("Tele Medicine")),
+            Expanded(
+              child: GestureDetector(
+                onTap:
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatScreen(isFromTeleMed: true),
+                      ),
+                    ),
+                child: customContainerWidget("Tele Medicine"),
+              ),
+            ),
             const SizedBox(width: 15),
             Text("🪙", style: TextStyle(fontSize: 22)),
             const SizedBox(width: 5),
@@ -282,14 +294,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       children: [
         Text(
           count,
-          style: textTheme.titleLarge!.copyWith(
-            fontWeight: FontWeight.bold,
-            fontSize: 25,
-          ),
+          style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
         ),
         Text(
           label,
-          style: textTheme.titleMedium!.copyWith(fontWeight: FontWeight.bold),
+          style: textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold),
         ),
       ],
     );

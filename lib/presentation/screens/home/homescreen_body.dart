@@ -31,8 +31,17 @@ class _HomescreenBodyState extends State<HomescreenBody> {
           Padding(
             padding: const EdgeInsets.all(15.0),
             child: GestureDetector(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ChatListScreen(),)),
-              child: Icon(Icons.message_outlined, color: Colors.white, size: 30)),
+              onTap:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ChatListScreen()),
+                  ),
+              child: Icon(
+                Icons.message_outlined,
+                color: Colors.white,
+                size: 30,
+              ),
+            ),
           ),
         ],
       ),

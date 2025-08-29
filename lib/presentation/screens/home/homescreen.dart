@@ -16,7 +16,7 @@ class Homescreen extends StatefulWidget {
 class _HomescreenState extends State<Homescreen> {
   int _currentIndex = 0;
   String? currentCity;
-  
+
   final Map<int, Widget> _createdScreens = {};
   final PageStorageBucket _bucket = PageStorageBucket();
 
@@ -61,7 +61,8 @@ class _HomescreenState extends State<Homescreen> {
               id: '1',
               username: 'user1',
               profilePicture: 'https://picsum.photos/100/100?random=1',
-              videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+              videoUrl:
+                  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
               description: 'Check out this amazing video! #viral #trending',
               musicTitle: 'Original Audio - user1',
               likes: 1250,
@@ -72,7 +73,8 @@ class _HomescreenState extends State<Homescreen> {
               id: '2',
               username: 'user2',
               profilePicture: 'https://picsum.photos/100/100?random=2',
-              videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+              videoUrl:
+                  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
               description: 'Another cool reel for you to enjoy!',
               musicTitle: 'Trending Song - Artist',
               likes: 890,
@@ -83,8 +85,10 @@ class _HomescreenState extends State<Homescreen> {
               id: '3',
               username: 'user3',
               profilePicture: 'https://picsum.photos/100/100?random=3',
-              videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-              description: 'Amazing content here! Don\'t forget to like and follow 🔥',
+              videoUrl:
+                  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+              description:
+                  'Amazing content here! Don\'t forget to like and follow 🔥',
               musicTitle: 'Popular Sound - Viral Track',
               likes: 2340,
               comments: 156,
@@ -107,24 +111,27 @@ class _HomescreenState extends State<Homescreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          Expanded(
-            child: PageStorage(
-              bucket: _bucket,
-              child: _getScreen(_currentIndex),
+    return SafeArea(
+      top: false,
+      child: Scaffold(
+        body: Column(
+          children: [
+            Expanded(
+              child: PageStorage(
+                bucket: _bucket,
+                child: _getScreen(_currentIndex),
+              ),
             ),
-          ),
-          BottomNavBar(
-            currentIndex: _currentIndex,
-            onItemTapped: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-          ),
-        ],
+            BottomNavBar(
+              currentIndex: _currentIndex,
+              onItemTapped: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
