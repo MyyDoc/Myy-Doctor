@@ -16,8 +16,7 @@ class BottomNavBar extends StatelessWidget {
       height: 50,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(6),
+        color: Color(0xFF0A1A27),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -25,7 +24,7 @@ class BottomNavBar extends StatelessWidget {
           _buildIcon(Icons.home_rounded, 0),
           _buildIcon(Icons.search, 1),
           _buildIcon(Icons.play_circle_outline_rounded, 2),
-          _buildIcon(Icons.person, 3),
+          _buildIcon(Icons.notifications_none_outlined, 3),
         ],
       ),
     );

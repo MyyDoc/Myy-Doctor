@@ -34,7 +34,7 @@ class StoryCircleItem extends StatelessWidget {
         Text(
           "name $index",
           style: textTheme.bodyMedium!.copyWith(
-            color: Colors.white,
+            color: Colors.black,
           ),
         ),
       ],

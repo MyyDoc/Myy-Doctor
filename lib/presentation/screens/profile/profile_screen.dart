@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
+import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
+import 'package:myydoctor/presentation/widgets/common_widgets.dart';
 import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
 import 'package:myydoctor/presentation/widgets/profile/goto_payment_container.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
+import 'package:myydoctor/presentation/widgets/profile/vip.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -49,12 +53,19 @@ class _ProfileScreenState extends State<ProfileScreen>
         automaticallyImplyLeading: false,
         actions: [
           Icon(Icons.add_box_outlined, color: Color(0xFFD4AF37), size: 30),
-          Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: Icon(
-              Icons.message_outlined,
-              color: Color(0xFFD4AF37),
-              size: 30,
+          GestureDetector(
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ChatListScreen()),
+                ),
+            child: Padding(
+              padding: const EdgeInsets.all(15.0),
+              child: Icon(
+                Icons.message_outlined,
+                color: Color(0xFFD4AF37),
+                size: 30,
+              ),
             ),
           ),
         ],
@@ -140,25 +151,11 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
 
-            // Tab 2: Content 2
-            ListView.separated(
-              itemBuilder:
-                  (context, index) =>
-                      index == 0
-                          ? PaymentPosterContainer(textTheme: textTheme)
-                          : ListTile(
-                            leading: Icon(
-                              Icons.ac_unit_sharp,
-                              color: Colors.grey,
-                            ),
-                            title: Text("Menu Title $index"),
-                            trailing: Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              color: Colors.grey,
-                            ),
-                          ),
-              separatorBuilder: (context, index) => const SizedBox(height: 5),
-              itemCount: 10,
+            Column(
+              children: [
+                PaymentPosterContainer(textTheme: textTheme),
+                Expanded(child: VipPrivilages()),
+              ],
             ),
 
             SavedContents(),
@@ -187,7 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: Column(
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       profileDetailsCounts(textTheme, "10", "Posts"),
                       profileDetailsCounts(textTheme, "150", "Followers"),
@@ -248,7 +245,18 @@ class _ProfileScreenState extends State<ProfileScreen>
               ],
             ),
             const SizedBox(width: 10),
-            Expanded(child: customContainerWidget("Tele Medicine")),
+            Expanded(
+              child: GestureDetector(
+                onTap:
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatScreen(isFromTeleMed: true),
+                      ),
+                    ),
+                child: customContainerWidget("Tele Medicine"),
+              ),
+            ),
             const SizedBox(width: 15),
             Text("🪙", style: TextStyle(fontSize: 22)),
             const SizedBox(width: 5),
@@ -286,14 +294,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       children: [
         Text(
           count,
-          style: textTheme.titleLarge!.copyWith(
-            fontWeight: FontWeight.bold,
-            fontSize: 25,
-          ),
+          style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
         ),
         Text(
           label,
-          style: textTheme.titleMedium!.copyWith(fontWeight: FontWeight.bold),
+          style: textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold),
         ),
       ],
     );

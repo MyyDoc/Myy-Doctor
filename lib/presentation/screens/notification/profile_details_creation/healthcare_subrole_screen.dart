@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:myydoctor/presentation/screens/profile/profile_details_creation/medical_registration.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/patient_screen.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
 import 'package:myydoctor/presentation/widgets/profile/app_button.dart';
@@ -30,11 +29,11 @@ class HealthcareProfessionalScreen extends StatelessWidget {
                 screenWidth: screenWidth,
                 text: 'MBBS / MD / DO / DM / MCh',
                 onTap: () {
-                  Navigator.pushAndRemoveUntil(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => const MedicalRegistrationScreen()),
-                        (route) => false,
+                      builder: (context) => const PatientFeaturesScreen(),
+                    ),
                   );
                 },
               ),
@@ -45,11 +44,11 @@ class HealthcareProfessionalScreen extends StatelessWidget {
                 screenWidth: screenWidth,
                 text: 'BSc / MSc / PhD',
                 onTap: () {
-                  Navigator.pushAndRemoveUntil(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => const MedicalRegistrationScreen()),
-                        (route) => false,
+                      builder: (context) => const PatientFeaturesScreen(),
+                    ),
                   );
                 },
               ),

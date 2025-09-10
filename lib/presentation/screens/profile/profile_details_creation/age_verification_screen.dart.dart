@@ -77,28 +77,19 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                   Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Shadow container
-                      Container(
-                        width: boxWidth,
-                        height: boxHeight,
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              spreadRadius: 2,
-                              blurRadius: 10,
-                              offset: Offset(-4, 0),
-                            ),
-                          ],
+                      Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(middleRadius)
                         ),
-                      ),
-                      // Border (outer colored layer)
-                      Container(
-                        width: boxWidth - borderSize,
-                        height: boxHeight - borderSize,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(middleRadius),
-                          color: AppColors.gold,
+                        child: Container(
+                          width: 180,
+                          height: boxHeight - borderSize,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(middleRadius),
+                            color: AppColors.gold,
+                            border: Border.all(width: 10, color: Colors.amber)
+                          ),
                         ),
                       ),
                       // Inner actual profile background

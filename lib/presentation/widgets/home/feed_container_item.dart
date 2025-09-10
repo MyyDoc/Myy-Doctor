@@ -88,7 +88,7 @@ class FeedContainerItem extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.comment_outlined, color: Colors.white,),
+                      Icon(Icons.message_outlined, color: Colors.white,),
                   Icon(Icons.send_rounded, color: Colors.white,),
                   Icon(Icons.bookmark_border_rounded, color: Colors.white,)
                     ],
