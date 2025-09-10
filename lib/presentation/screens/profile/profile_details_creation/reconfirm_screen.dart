@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/screens/home/homescreen.dart';
-import 'package:myydoctor/presentation/screens/home/homescreen_body.dart';
-import 'package:myydoctor/presentation/widgets/profile/vip.dart';
+
 
 class ReconfirmRegistrationScreen extends StatelessWidget {
   const ReconfirmRegistrationScreen({super.key});

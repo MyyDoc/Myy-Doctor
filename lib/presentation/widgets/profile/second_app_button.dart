@@ -41,7 +41,7 @@ class SecondAppButton extends StatelessWidget {
                 text,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.white,
                 ),
               ),
             ),
