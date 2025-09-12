@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
 import 'package:myydoctor/presentation/widgets/profile/second_app_button.dart';
 
@@ -30,10 +31,10 @@ class InfluencerTypeScreen extends StatelessWidget {
                   SecondAppButton(
                     screenHeight: screenHeight,
                     screenWidth: screenWidth,
-                    text: 'Medical influencer',
-                    ontap: () {
-                    
-                    },
+                    text: 'Medical influencer'
+                    ,ontap:(){
+                    Navigator.of(context).push(MaterialPageRoute(builder: (context)=> ProfileScreen()));
+                  },
                   ),
                   const SizedBox(height: 16),
                     
@@ -51,9 +52,9 @@ class InfluencerTypeScreen extends StatelessWidget {
                     screenHeight: screenHeight,
                     screenWidth: screenWidth,
                     text: 'IT influencer',
-                    ontap: () {
-                    
-                    },
+                    ontap:(){
+                    Navigator.of(context).push(MaterialPageRoute(builder: (context)=> ProfileScreen()));
+                  },
                   ),
                   const SizedBox(height: 16),
                     
@@ -61,19 +62,19 @@ class InfluencerTypeScreen extends StatelessWidget {
                     screenHeight: screenHeight,
                     screenWidth: screenWidth,
                     text: 'Finance influencer',
-                    ontap: () {
-                     
-                    },
+                    ontap:(){
+                    Navigator.of(context).push(MaterialPageRoute(builder: (context)=> ProfileScreen()));
+                  },
                   ),
                   const SizedBox(height: 16),
                     
                   SecondAppButton(
                     screenHeight: screenHeight,
                     screenWidth: screenWidth,
-                    text: 'Legal influencer',
-                    ontap: () {
-                      
-                    },
+                    text: 'Legal influencer'
+                   ,ontap:(){
+                    Navigator.of(context).push(MaterialPageRoute(builder: (context)=> ProfileScreen()));
+                  },
                   ),
                 ],
               ),

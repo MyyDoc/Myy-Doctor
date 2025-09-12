@@ -12,6 +12,7 @@ dependencies:
   firebase_core: ^4.1.0
   flutter:
     sdk: flutter
+  flutter_bloc: ^9.1.1
   font_awesome_flutter: ^10.9.0
   geocoding: ^4.0.0
   geolocator: ^14.0.1

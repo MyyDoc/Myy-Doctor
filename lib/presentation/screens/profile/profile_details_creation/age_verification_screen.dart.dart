@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/profile_selection_screen.dart';
 import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
@@ -148,6 +149,7 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                   showAppSnackBar(context, 'Plaase enter your age to proceed');
                   return;
                 }
+                SaveProfilePreferenceCubit.age = int.parse(_age1Controller.text + _age2Controller.text);
                 Navigator.push(context, MaterialPageRoute(builder: (_)=> ProfileTypeScreen()));
               },)
             ],

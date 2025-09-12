@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/curious_about_health_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/healthcare_enterprise.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/healthcare_profile.dart';
@@ -36,6 +37,7 @@ class ProfileTypeScreen extends StatelessWidget {
                     screenWidth: screenWidth,
                     text: 'I am a Healthcare Professional',
                     ontap: () {
+                      SaveProfilePreferenceCubit.occupation = 'healthcare professianal';
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => HealthcareProfile()),
@@ -47,6 +49,7 @@ class ProfileTypeScreen extends StatelessWidget {
                     screenWidth: screenWidth,
                     text: 'I am a Healthcare Enterprise',
                     ontap: () {
+                      SaveProfilePreferenceCubit.occupation = 'healthcare enterprise';
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -60,6 +63,7 @@ class ProfileTypeScreen extends StatelessWidget {
                     screenWidth: screenWidth,
                     text: 'I want to be an Influencer',
                     ontap: () {
+                      SaveProfilePreferenceCubit.occupation = 'influencer';
                       Navigator.push(
                         context,
                         MaterialPageRoute(

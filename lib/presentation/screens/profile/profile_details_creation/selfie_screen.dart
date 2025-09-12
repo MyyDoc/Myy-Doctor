@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/age_verification_screen.dart.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
 import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
 class SelfieScreen extends StatefulWidget {
@@ -47,6 +48,7 @@ class _SelfieScreenState extends State<SelfieScreen> {
                   XFile? image = await picker.pickImage(source: ImageSource.gallery,);
                   if(image != null){
                     setState(() {
+                      SaveProfilePreferenceCubit.profileImage = image;
                       _image = image;
                     });
                   }
