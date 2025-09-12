@@ -1,6 +1,9 @@
-import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/age_verification_screen.dart.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
+import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
 class SelfieScreen extends StatefulWidget {
   const SelfieScreen({super.key});
@@ -10,13 +13,10 @@ class SelfieScreen extends StatefulWidget {
 }
 
 class _SelfieScreenState extends State<SelfieScreen> {
-  Timer? timer;
+  XFile? _image;
   @override
   void dispose() {
-    if(timer != null){
-      timer?.cancel();
-      timer = null;
-    }
+    
     super.dispose();
   }
   @override
@@ -44,15 +44,14 @@ class _SelfieScreenState extends State<SelfieScreen> {
             Center(
               child: InkWell(
                 onTap: ()async{
-                  // final ImagePicker picker = ImagePicker();
-                  // XFile? image = await picker.pickImage(source: ImageSource.camera,preferredCameraDevice: CameraDevice.front);
-                  // if(image != null){
-                  //   context.read<ImageSelectorProvider>().setImagePath(image.path);
-                  //   timer = Timer(Duration(seconds: 3), (){
-                  //     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_)=> ProfileAddingScreen(imagePath: image.path,)));
-                  //   });
-                  // }
-                  Navigator.push(context, MaterialPageRoute(builder: (_)=> AgeVerificationScreen()));
+                  final ImagePicker picker = ImagePicker();
+                  XFile? image = await picker.pickImage(source: ImageSource.gallery,);
+                  if(image != null){
+                    setState(() {
+                      SaveProfilePreferenceCubit.profileImage = image;
+                      _image = image;
+                    });
+                  }
                 },
                 child: Stack(
                   alignment: Alignment.center,
@@ -71,10 +70,17 @@ class _SelfieScreenState extends State<SelfieScreen> {
                         width: ovalWidth,
                         height: ovalHeight,
                         color: Colors.white,
-                        child: Center(
+                        child: _image == null ? Center(
                           child: Text(
                             'Selfie',
                             style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ) : ClipOval(
+                          child: Image.file(
+                            File(_image!.path),
+                            width: ovalWidth,
+                            height: ovalHeight,
+                            fit: BoxFit.cover,
                           ),
                         ),
                       )
@@ -93,6 +99,14 @@ class _SelfieScreenState extends State<SelfieScreen> {
               ),
               textAlign: TextAlign.center,
             ),
+            SizedBox(height: screenHeight * 0.02),
+            IconButton(onPressed: (){
+              if(_image == null){
+                showAppSnackBar(context, 'Please select and Image to proceed');
+                return;
+              }
+               Navigator.push(context, MaterialPageRoute(builder: (_)=> AgeVerificationScreen(imagePath: _image?.path ?? '',)));
+            }, icon: Icon(Icons.arrow_forward_ios_outlined,color: AppColors.white,))
           ],
         ),
       ),

@@ -51,7 +51,7 @@ class HealthcareEnterpriseScreen extends StatelessWidget {
                     ),
                   );
                 },
-              ),
+              ), 
               const SizedBox(height: 16),
 
               AppButton(

@@ -1,26 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/reconfirm_screen.dart';
 import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 
-
-class ReconfirmRegistrationScreen extends StatefulWidget {
-  final String registerNumber;
-  final String cityCode;
-  const ReconfirmRegistrationScreen({super.key, required this.registerNumber,required this.cityCode});
+class MedicalRegistrationScreen extends StatefulWidget {
+  const MedicalRegistrationScreen({super.key});
 
   @override
-  State<ReconfirmRegistrationScreen> createState() => _ReconfirmRegistrationScreenState();
+  State<MedicalRegistrationScreen> createState() => _MedicalRegistrationScreenState();
 }
 
-class _ReconfirmRegistrationScreenState extends State<ReconfirmRegistrationScreen> {
-  TextEditingController reregisterNumberController = TextEditingController();
+class _MedicalRegistrationScreenState extends State<MedicalRegistrationScreen> {
+  TextEditingController registerNumberController = TextEditingController();
   TextEditingController cityCodeController = TextEditingController();
-
-  @override
-  void initState() {
-    cityCodeController.text = widget.cityCode;
-    super.initState();
-  }
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -82,7 +73,7 @@ class _ReconfirmRegistrationScreenState extends State<ReconfirmRegistrationScree
                       ),
                     ),
 
-                    // Extra spacing to push TN/XXXXXXXX down into middle
+                    // Added extra space before TN/XXXXXXXX to push it down
                     const SizedBox(height: 60),
 
                     // TN + XXXXXXXX Row
@@ -147,7 +138,7 @@ class _ReconfirmRegistrationScreenState extends State<ReconfirmRegistrationScree
                             width: 183,
                             height: 48,
                             child: TextField(
-                              controller: reregisterNumberController,
+                              controller: registerNumberController,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w400,
@@ -173,10 +164,10 @@ class _ReconfirmRegistrationScreenState extends State<ReconfirmRegistrationScree
                       ],
                     ),
 
-                    // Keep original button spacing
+                    // Space before button stays same
                     SizedBox(height: screenHeight * 0.15),
 
-                    // Reconfirm Button
+                    // Confirm Button
                     Container(
                       width: 360,
                       height: 53,
@@ -203,13 +194,16 @@ class _ReconfirmRegistrationScreenState extends State<ReconfirmRegistrationScree
                       ),
                       child: TextButton(
                         onPressed: () {
-                          if(reregisterNumberController.text != widget.registerNumber){
-                            showAppSnackBar(context, 'registoration number dees not match, please re-enter');
+                          if(cityCodeController.text.isEmpty || registerNumberController.text.isEmpty){
+                            showAppSnackBar(context, 'Please enter valid details to proceed');
                             return;
                           }
-                          SaveProfilePreferenceCubit.doctorRegistrationNumber = widget.registerNumber;
-                          showAppSnackBar(context, 'Registration number confirmed successfully');
-                          // Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Homescreen(),), (route) => false,);
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ReconfirmRegistrationScreen(registerNumber: registerNumberController.text,cityCode: cityCodeController.text,),
+                            ),
+                          );
                         },
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
@@ -219,7 +213,7 @@ class _ReconfirmRegistrationScreenState extends State<ReconfirmRegistrationScree
                         ),
                         child: const Center(
                           child: Text(
-                            "Reconfirm Registration Number",
+                            "Confirm Registration Number",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
@@ -229,10 +223,6 @@ class _ReconfirmRegistrationScreenState extends State<ReconfirmRegistrationScree
                           ),
                         ),
                       ),
-
-
-
-                      
                     ),
                   ],
                 ),
