@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/reconfirm_screen.dart';
+import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 
-class MedicalRegistrationScreen extends StatelessWidget {
+class MedicalRegistrationScreen extends StatefulWidget {
   const MedicalRegistrationScreen({super.key});
 
+  @override
+  State<MedicalRegistrationScreen> createState() => _MedicalRegistrationScreenState();
+}
+
+class _MedicalRegistrationScreenState extends State<MedicalRegistrationScreen> {
+  TextEditingController registerNumberController = TextEditingController();
+  TextEditingController cityCodeController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -88,6 +96,7 @@ class MedicalRegistrationScreen extends StatelessWidget {
                             width: 55,
                             height: 48,
                             child: TextField(
+                              controller: cityCodeController,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w400,
@@ -129,6 +138,7 @@ class MedicalRegistrationScreen extends StatelessWidget {
                             width: 183,
                             height: 48,
                             child: TextField(
+                              controller: registerNumberController,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w400,
@@ -184,10 +194,14 @@ class MedicalRegistrationScreen extends StatelessWidget {
                       ),
                       child: TextButton(
                         onPressed: () {
+                          if(cityCodeController.text.isEmpty || registerNumberController.text.isEmpty){
+                            showAppSnackBar(context, 'Please enter valid details to proceed');
+                            return;
+                          }
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) =>
-                                  const ReconfirmRegistrationScreen(),
+                                  ReconfirmRegistrationScreen(registerNumber: registerNumberController.text,cityCode: cityCodeController.text,),
                             ),
                           );
                         },
