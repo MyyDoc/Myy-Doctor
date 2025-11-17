@@ -21,7 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool hasVisited = prefs.getBool('hasVisited') ?? false;
 
-    if (hasVisited) {
+    if (!hasVisited) {
       _navigateToHome();
     } else {
       await prefs.setBool('hasVisited', true);
