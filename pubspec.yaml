@@ -9,13 +9,16 @@ environment:
 
 dependencies:
   cupertino_icons: ^1.0.8
+  firebase_auth: ^6.1.2
   firebase_core: ^4.1.0
   flutter:
     sdk: flutter
+  flutter_facebook_auth: ^7.1.2
   font_awesome_flutter: ^10.9.0
   geocoding: ^4.0.0
   geolocator: ^14.0.1
   google_fonts: ^6.1.0
+  google_sign_in: ^7.2.0
   shared_preferences: ^2.5.3
   video_player: ^2.10.0
 
