@@ -8,6 +8,8 @@ environment:
   sdk: ^3.7.2
 
 dependencies:
+  carousel_slider: ^5.1.1
+  cloud_firestore: ^6.0.1
   cupertino_icons: ^1.0.8
   firebase_core: ^4.1.0
   flutter:
