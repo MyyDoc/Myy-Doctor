@@ -5,10 +5,8 @@ import 'package:myydoctor/presentation/screens/profile/profile_details_creation/
 import 'package:myydoctor/presentation/widgets/auth/loginButton.dart';
 import 'package:myydoctor/presentation/widgets/auth/icons.dart';
 import 'package:myydoctor/presentation/widgets/auth/logo.dart';
-import 'package:myydoctor/services/authentication/apple_auth_service.dart';
-import 'package:myydoctor/services/authentication/auth_service.dart';
-import 'package:myydoctor/services/authentication/facebook_auth_service.dart';
-import 'package:myydoctor/services/authentication/google_auth_service.dart';
+
+import '../../../domain/auth/auth_repository.dart';
 
 class LoginAndSignUp extends StatefulWidget {
   const LoginAndSignUp({super.key});
@@ -18,23 +16,19 @@ class LoginAndSignUp extends StatefulWidget {
 }
 
 class _LoginAndSignUpState extends State<LoginAndSignUp> {
-  // Controllers
+  final AuthService _authService = AuthService();
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _reEnterPasswordController = TextEditingController();
-
-  // Service classes
-  final AuthService _authService = AuthService();
-  final GoogleAuthService _googleAuthService = GoogleAuthService();
-  final FacebookAuthService _facebookAuthService = FacebookAuthService();
-  final AppleAuthService _appleAuthService = AppleAuthService();
+  final TextEditingController _reEnterPasswordController =
+  TextEditingController();
 
   // State variables
   bool _obscurePassword = true;
   bool _obscureReEnterPassword = true;
-  bool _isSignUpMode = false; // This toggles between login and signup
+  bool _isSignUpMode = false;
   bool _isLoading = false;
 
   @override
@@ -53,104 +47,442 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
     });
   }
 
-  Future<void> _showErrorDialog(String message) async {
+  // Show error dialog
+  void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Authentication Error'),
-        content: Text(message),
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Error',
+          style: GoogleFonts.cormorantGaramond(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          message,
+          style: GoogleFonts.cormorantGaramond(),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'OK',
+              style: GoogleFonts.cormorantGaramond(
+                color: const Color(0xFFD4AF37),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _handleLoginSignUp() async {
-    FocusScope.of(context).unfocus();
+  // Show success dialog
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Success',
+          style: GoogleFonts.cormorantGaramond(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          message,
+          style: GoogleFonts.cormorantGaramond(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'OK',
+              style: GoogleFonts.cormorantGaramond(
+                color: const Color(0xFFD4AF37),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Show loading indicator
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(
+                  color: Color(0xFFD4AF37),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Please wait...',
+                  style: GoogleFonts.cormorantGaramond(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Validate email
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  // Validate password
+  bool _isValidPassword(String password) {
+    return password.length >= 6;
+  }
+
+  // Handle Sign Up
+  Future<void> _handleSignUp() async {
+    // Validation
+    if (_emailController.text.trim().isEmpty) {
+      _showErrorDialog('Please enter your email');
+      return;
+    }
+
+    if (!_isValidEmail(_emailController.text.trim())) {
+      _showErrorDialog('Please enter a valid email address');
+      return;
+    }
+
+    if (_fullNameController.text.trim().isEmpty) {
+      _showErrorDialog('Please enter your full name');
+      return;
+    }
+
+    if (_usernameController.text.trim().isEmpty) {
+      _showErrorDialog('Please enter a username');
+      return;
+    }
+
+    if (_usernameController.text.trim().length < 3) {
+      _showErrorDialog('Username must be at least 3 characters');
+      return;
+    }
+
+    if (_passwordController.text.isEmpty) {
+      _showErrorDialog('Please enter a password');
+      return;
+    }
+
+    if (!_isValidPassword(_passwordController.text)) {
+      _showErrorDialog('Password must be at least 6 characters');
+      return;
+    }
+
+    if (_passwordController.text != _reEnterPasswordController.text) {
+      _showErrorDialog('Passwords do not match');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
-    String? result;
-    if (_isSignUpMode) {
-      final email = _emailController.text.trim();
-      final password = _passwordController.text;
-      final rePassword = _reEnterPasswordController.text;
+    _showLoadingDialog();
 
-      if (email.isEmpty ||
-          _fullNameController.text.trim().isEmpty ||
-          _usernameController.text.trim().isEmpty ||
-          password.isEmpty ||
-          rePassword.isEmpty) {
-        setState(() => _isLoading = false);
-        _showErrorDialog('Please fill all the fields.');
-        return;
-      }
-      if (password != rePassword) {
-        setState(() => _isLoading = false);
-        _showErrorDialog('Passwords do not match.');
-        return;
-      }
-      result = await _authService.signUp(email: email, password: password);
-      setState(() => _isLoading = false);
-      if (result == null) {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const SelfieScreen()));
-      } else {
-        _showErrorDialog(result);
-      }
+    final result = await _authService.signUpWithEmail(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      fullName: _fullNameController.text.trim(),
+      username: _usernameController.text.trim().toLowerCase(),
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    Navigator.pop(context); // Close loading dialog
+
+    if (result['success']) {
+      // Navigate to selfie screen or next step
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const SelfieScreen(),
+        ),
+      );
     } else {
-      final username = _usernameController.text.trim();
-      final password = _passwordController.text;
-      if (username.isEmpty || password.isEmpty) {
-        setState(() => _isLoading = false);
-        _showErrorDialog('Please enter username and password.');
-        return;
-      }
-      result = await _authService.signIn(email: username, password: password);
-      setState(() => _isLoading = false);
-      if (result == null) {
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const Homescreen()), (route) => false);
-      } else {
-        _showErrorDialog(result);
-      }
+      _showErrorDialog(result['message']);
+    }
+
+  }
+
+  // Handle Login
+  Future<void> _handleLogin() async {
+    // Validation
+    if (_usernameController.text.trim().isEmpty) {
+      _showErrorDialog('Please enter your username or email');
+      return;
+    }
+
+    if (_passwordController.text.isEmpty) {
+      _showErrorDialog('Please enter your password');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    _showLoadingDialog();
+
+    // Determine if input is email or username
+    String email = _usernameController.text.trim();
+
+    // If not an email, we need to fetch the email from username
+    // This requires a cloud function or additional query
+
+    final result = await _authService.loginWithEmail(
+      email: email,
+      password: _passwordController.text,
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    Navigator.pop(context); // Close loading dialog
+
+    if (result['success']) {
+      // Navigate to home screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const Homescreen(),
+        ),
+        (Route<dynamic> route) => false,
+      );
+    } else {
+      _showErrorDialog(result['message']);
     }
   }
 
+  // Handle Google Sign In
   Future<void> _handleGoogleSignIn() async {
-    setState(() => _isLoading = true);
-    final result = await _googleAuthService.signInWithGoogle();
-    setState(() => _isLoading = false);
-    if (result == null) {
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const Homescreen()), (route) => false);
+    setState(() {
+      _isLoading = true;
+    });
+
+    _showLoadingDialog();
+
+    final result = await _authService.signInWithGoogle();
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    Navigator.pop(context); // Close loading dialog
+
+    if (result['success']) {
+      // Navigate to home screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const Homescreen(),
+        ),
+        (Route<dynamic> route) => false,
+      );
     } else {
-      _showErrorDialog(result);
+      _showErrorDialog(result['message']);
     }
   }
 
+  // Handle Facebook Sign In
   Future<void> _handleFacebookSignIn() async {
-    setState(() => _isLoading = true);
-    final result = await _facebookAuthService.signInWithFacebook();
-    setState(() => _isLoading = false);
-    if (result == null) {
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const Homescreen()), (route) => false);
+    setState(() {
+      _isLoading = true;
+    });
+
+    _showLoadingDialog();
+
+    // Uncomment when AuthService is imported
+    /*
+    final result = await _authService.signInWithFacebook();
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    Navigator.pop(context); // Close loading dialog
+
+    if (result['success']) {
+      // Navigate to home screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const Homescreen(),
+        ),
+        (Route<dynamic> route) => false,
+      );
     } else {
-      _showErrorDialog(result);
+      _showErrorDialog(result['message']);
     }
+    */
+
+    // Temporary navigation (remove when implementing auth)
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() {
+      _isLoading = false;
+    });
+    Navigator.pop(context);
+    _showSuccessDialog('Facebook Sign In - Coming Soon!');
   }
 
+  // Handle Apple Sign In
   Future<void> _handleAppleSignIn() async {
-    setState(() => _isLoading = true);
-    final result = await _appleAuthService.signInWithApple();
-    setState(() => _isLoading = false);
-    if (result == null) {
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const Homescreen()), (route) => false);
+    setState(() {
+      _isLoading = true;
+    });
+
+    _showLoadingDialog();
+
+    // Uncomment when AuthService is imported
+    /*
+    final result = await _authService.signInWithApple();
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    Navigator.pop(context); // Close loading dialog
+
+    if (result['success']) {
+      // Navigate to home screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const Homescreen(),
+        ),
+        (Route<dynamic> route) => false,
+      );
     } else {
-      _showErrorDialog(result);
+      _showErrorDialog(result['message']);
     }
+    */
+
+    // Temporary navigation (remove when implementing auth)
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() {
+      _isLoading = false;
+    });
+    Navigator.pop(context);
+    _showSuccessDialog('Apple Sign In - Coming Soon!');
+  }
+
+  // Handle Forgot Password
+  Future<void> _handleForgotPassword() async {
+    final TextEditingController emailController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Reset Password',
+          style: GoogleFonts.cormorantGaramond(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Enter your email address and we\'ll send you a link to reset your password.',
+              style: GoogleFonts.cormorantGaramond(),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(
+                hintText: 'Email',
+                hintStyle: GoogleFonts.cormorantGaramond(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(7),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFD4AF37),
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.cormorantGaramond(
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (emailController.text.trim().isEmpty) {
+                Navigator.pop(context);
+                _showErrorDialog('Please enter your email');
+                return;
+              }
+
+              if (!_isValidEmail(emailController.text.trim())) {
+                Navigator.pop(context);
+                _showErrorDialog('Please enter a valid email');
+                return;
+              }
+
+              Navigator.pop(context);
+              _showLoadingDialog();
+
+              // Uncomment when AuthService is imported
+              /*
+              final result = await _authService.resetPassword(
+                emailController.text.trim(),
+              );
+
+              Navigator.pop(context); // Close loading dialog
+
+              if (result['success']) {
+                _showSuccessDialog(result['message']);
+              } else {
+                _showErrorDialog(result['message']);
+              }
+              */
+
+              // Temporary
+              await Future.delayed(const Duration(seconds: 1));
+              Navigator.pop(context);
+              _showSuccessDialog('Password reset email sent!');
+            },
+            child: Text(
+              'Send',
+              style: GoogleFonts.cormorantGaramond(
+                color: const Color(0xFFD4AF37),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -185,12 +517,21 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                     children: [
                       const SizedBox(height: 20),
                       if (_isSignUpMode) ...[
-                        _buildTextField(controller: _emailController, hintText: 'Email Address'),
+                        _buildTextField(
+                          controller: _emailController,
+                          hintText: 'Email Address',
+                          keyboardType: TextInputType.emailAddress,
+                        ),
                         const SizedBox(height: 14),
                         _buildTextField(controller: _fullNameController, hintText: 'Full Name'),
                         const SizedBox(height: 14),
                       ],
-                      _buildTextField(controller: _usernameController, hintText: 'Username'),
+
+                      // Username Field
+                      _buildTextField(
+                        controller: _usernameController,
+                        hintText: _isSignUpMode ? 'Username' : 'Username or Email',
+                      ),
                       const SizedBox(height: 14),
                       _buildPasswordField(
                         controller: _passwordController,
@@ -207,8 +548,10 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                           hintText: 'Re-Enter Password',
                           obscureText: _obscureReEnterPassword,
                           onToggleVisibility: () {
-                            setState(() =>
-                                _obscureReEnterPassword = !_obscureReEnterPassword);
+                            setState(() {
+                              _obscureReEnterPassword =
+                              !_obscureReEnterPassword;
+                            });
                           },
                         ),
                         const SizedBox(height: 14),
@@ -218,17 +561,25 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                       else
                         _buildServiceText(),
                       const SizedBox(height: 16),
-                      _isLoading
-                          ? const CircularProgressIndicator()
-                          : LoginButton(
-                              function: _handleLoginSignUp,
-                              text: _isSignUpMode ? 'Sign Up' : 'Log In',
-                            ),
+
+                      // Login/Signup Button
+                      LoginButton(
+                        function: _isLoading
+                            ? () {}
+                            : () {
+                          if (_isSignUpMode) {
+                            _handleSignUp();
+                          } else {
+                            _handleLogin();
+                          }
+                        },
+                        text: _isSignUpMode ? 'Sign Up' : 'Log In',
+                      ),
                       const SizedBox(height: 24),
                       SocialLoginButtons(
-                        onGoogleTap: _handleGoogleSignIn,
-                        onFacebookTap: _handleFacebookSignIn,
-                        onAppleTap: _handleAppleSignIn,
+                        onGoogleTap: _isLoading ? () {} : _handleGoogleSignIn,
+                        onFacebookTap: _isLoading ? () {} : _handleFacebookSignIn,
+                        onAppleTap: _isLoading ? () {} : _handleAppleSignIn,
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -244,7 +595,7 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                             ),
                           ),
                           GestureDetector(
-                            onTap: _toggleMode,
+                            onTap: _isLoading ? null : _toggleMode,
                             child: Text(
                               _isSignUpMode ? 'Log In' : 'Sign Up',
                               style: GoogleFonts.cormorantGaramond(
@@ -259,9 +610,7 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                       const SizedBox(height: 8),
                       if (!_isSignUpMode)
                         GestureDetector(
-                          onTap: () {
-                            // TODO: Implement forgot password
-                          },
+                          onTap: _isLoading ? null : _handleForgotPassword,
                           child: Text(
                             'Forgot Password?',
                             style: GoogleFonts.cormorantGaramond(
@@ -285,11 +634,13 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
+    TextInputType? keyboardType,
   }) {
     return SizedBox(
       height: 45,
       child: TextField(
         controller: controller,
+        keyboardType: keyboardType,
         style: const TextStyle(
           fontSize: 16,
           color: Colors.black,
@@ -380,7 +731,7 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
         children: [
           const TextSpan(
             text:
-                'People who use our service may have uploaded\nyour contact information to Myydoctor. ',
+            'People who use our service may have uploaded\nyour contact information to Myydoctor. ',
           ),
           TextSpan(
             text: 'Learn More',
