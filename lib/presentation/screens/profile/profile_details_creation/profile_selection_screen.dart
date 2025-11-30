@@ -95,9 +95,6 @@ class ProfileTypeScreen extends StatelessWidget {
                             screenWidth: screenWidth,
                             text: 'I want to be an Influencer',
                             ontap: () {
-                              SaveProfilePreferenceCubit.occupation =
-                                  'influencer';
-
                               context
                                   .read<SaveProfilePreferenceCubit>()
                                   .createAndsavePreference(
