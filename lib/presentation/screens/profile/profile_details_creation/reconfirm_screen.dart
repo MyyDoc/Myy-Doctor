@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/screens/home/homescreen.dart';
 import 'package:myydoctor/presentation/screens/home/homescreen_body.dart';
 import 'package:myydoctor/presentation/widgets/profile/vip.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ReconfirmRegistrationScreen extends StatelessWidget {
   const ReconfirmRegistrationScreen({super.key});
@@ -185,7 +186,9 @@ class ReconfirmRegistrationScreen extends StatelessWidget {
                         ),
                       ),
                       child: TextButton(
-                        onPressed: () {
+                        onPressed: () async{
+                          SharedPreferences prefs = await SharedPreferences.getInstance();
+                          await prefs.setBool('isLoggedIn', true);
                           Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Homescreen(),), (route) => false,);
                         },
                         style: TextButton.styleFrom(

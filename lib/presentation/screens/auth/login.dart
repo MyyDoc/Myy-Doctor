@@ -6,6 +6,7 @@ import 'package:myydoctor/presentation/screens/profile/profile_details_creation/
 import 'package:myydoctor/presentation/widgets/auth/loginButton.dart';
 import 'package:myydoctor/presentation/widgets/auth/icons.dart';
 import 'package:myydoctor/presentation/widgets/auth/logo.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../domain/auth/auth_repository.dart';
 
@@ -254,6 +255,8 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
       password: _passwordController.text,
     );
 
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
     setState(() {
       _isLoading = false;
     });
@@ -261,6 +264,7 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
     Navigator.pop(context); // Close loading dialog
 
     if (result['success']) {
+      await prefs.setBool('isLoggedIn', true);
       // Navigate to home screen
       Navigator.pushAndRemoveUntil(
         context,
@@ -283,6 +287,7 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
     _showLoadingDialog();
 
     final result = await _authService.signInWithGoogle();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
 
     setState(() {
       _isLoading = false;
@@ -291,6 +296,7 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
     Navigator.pop(context); // Close loading dialog
 
     if (result['success']) {
+      await prefs.setBool('isLoggedIn', true);
       // Navigate to home screen
       Navigator.pushAndRemoveUntil(
         context,
@@ -392,7 +398,7 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(
           'Reset Password',
           style: GoogleFonts.cormorantGaramond(
@@ -428,7 +434,7 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               'Cancel',
               style: GoogleFonts.cormorantGaramond(
@@ -438,40 +444,42 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
           ),
           TextButton(
             onPressed: () async {
-              if (emailController.text.trim().isEmpty) {
-                Navigator.pop(context);
+              final email = emailController.text.trim();
+
+              if (email.isEmpty) {
+                Navigator.pop(dialogContext);
+                if (!mounted) return;
                 _showErrorDialog('Please enter your email');
                 return;
               }
 
-              if (!_isValidEmail(emailController.text.trim())) {
-                Navigator.pop(context);
+              if (!_isValidEmail(email)) {
+                Navigator.pop(dialogContext);
+                if (!mounted) return;
                 _showErrorDialog('Please enter a valid email');
                 return;
               }
 
-              Navigator.pop(context);
+              // Close the dialog first
+              Navigator.pop(dialogContext);
+
+              // Show loading dialog using the parent context
+              if (!mounted) return;
               _showLoadingDialog();
 
-              // Uncomment when AuthService is imported
-              /*
-              final result = await _authService.resetPassword(
-                emailController.text.trim(),
-              );
+              // Perform async operation
+              final result = await _authService.resetPassword(email);
 
+              // Check if still mounted before closing loading dialog
+              if (!mounted) return;
               Navigator.pop(context); // Close loading dialog
 
+              // Show result
               if (result['success']) {
                 _showSuccessDialog(result['message']);
               } else {
                 _showErrorDialog(result['message']);
               }
-              */
-
-              // Temporary
-              await Future.delayed(const Duration(seconds: 1));
-              Navigator.pop(context);
-              _showSuccessDialog('Password reset email sent!');
             },
             child: Text(
               'Send',

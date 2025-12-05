@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/auth/login.dart';
 import 'package:myydoctor/presentation/screens/auth/onboarding.dart';
 import 'package:myydoctor/presentation/screens/home/homescreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,13 +20,17 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkFirstLaunch() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool hasVisited = prefs.getBool('hasVisited') ?? false;
+    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    bool hasVisited = prefs.getBool("hasVisited") ?? false;
 
-    if (hasVisited) {
+    if (isLoggedIn) {
       _navigateToHome();
-    } else {
-      await prefs.setBool('hasVisited', true);
+    } else if ( hasVisited){
+      _navigateToLogin();
+    }
+    else {
       _navigateToOnboarding();
+      await prefs.setBool("hasVisited", true);
     }
   }
 
@@ -33,6 +38,13 @@ class _SplashScreenState extends State<SplashScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const OnboardingScreen(),),
+    );
+  }
+
+  void _navigateToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginAndSignUp(),),
     );
   }
 
