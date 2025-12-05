@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/presentation/screens/home/homescreen.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
-import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
 import 'package:myydoctor/presentation/widgets/profile/second_app_button.dart';
 
-class InfluencerTypeScreen extends StatelessWidget {
-  const InfluencerTypeScreen({super.key});
+class PatientPage extends StatelessWidget {
+  const PatientPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-
+    final screenHeight = MediaQuery.of(context).size.height;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -52,49 +51,41 @@ class InfluencerTypeScreen extends StatelessWidget {
                           SecondAppButton(
                             screenHeight: screenHeight,
                             screenWidth: screenWidth,
-                            text: 'Medical influencer',
-                            ontap: () {
-                              context.read<SaveProfilePreferenceCubit>().savePreference('medical influencer', ProfileScreen());
+                            text: 'Search your doctor',
+                            ontap: (){
+                              context.read<SaveProfilePreferenceCubit>().savePreference('Search your doctor', const Homescreen());
                             },
                           ),
-                          const SizedBox(height: 16),
-
                           SecondAppButton(
                             screenHeight: screenHeight,
                             screenWidth: screenWidth,
-                            text: 'Lifestyle Influencer',
-                            ontap: () {
-                              context.read<SaveProfilePreferenceCubit>().savePreference('lifestyle influencer', ProfileScreen());
+                            text: 'Search your disease',
+                            ontap: (){
+                              context.read<SaveProfilePreferenceCubit>().savePreference('Search your disease', const Homescreen());
                             },
                           ),
-                          const SizedBox(height: 16),
-
                           SecondAppButton(
                             screenHeight: screenHeight,
                             screenWidth: screenWidth,
-                            text: 'IT influencer',
-                            ontap: () {
-                              context.read<SaveProfilePreferenceCubit>().savePreference('IT influencer', ProfileScreen());
+                            text: 'Book an appointment',
+                            ontap: (){
+                              context.read<SaveProfilePreferenceCubit>().savePreference('book an appointment', const Homescreen());
                             },
                           ),
-                          const SizedBox(height: 16),
-
                           SecondAppButton(
                             screenHeight: screenHeight,
                             screenWidth: screenWidth,
-                            text: 'Finance influencer',
-                            ontap: () {
-                              context.read<SaveProfilePreferenceCubit>().savePreference('Finance influencer', ProfileScreen());
+                            text: 'Search your treatment',
+                            ontap: (){
+                              context.read<SaveProfilePreferenceCubit>().savePreference('search your treatment', const Homescreen());
                             },
                           ),
-                          const SizedBox(height: 16),
-
                           SecondAppButton(
                             screenHeight: screenHeight,
                             screenWidth: screenWidth,
-                            text: 'Legal influencer',
-                            ontap: () {
-                              context.read<SaveProfilePreferenceCubit>().savePreference('Legal influencer', ProfileScreen());
+                            text: 'Search patient community',
+                            ontap: (){
+                              context.read<SaveProfilePreferenceCubit>().savePreference('search patient community', const Homescreen());
                             },
                           ),
                         ],

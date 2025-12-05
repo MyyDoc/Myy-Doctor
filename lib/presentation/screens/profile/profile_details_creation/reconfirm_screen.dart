@@ -1,12 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
+import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
+
 import 'package:myydoctor/presentation/screens/home/homescreen.dart';
 import 'package:myydoctor/presentation/screens/home/homescreen_body.dart';
 import 'package:myydoctor/presentation/widgets/profile/vip.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class ReconfirmRegistrationScreen extends StatelessWidget {
-  const ReconfirmRegistrationScreen({super.key});
+class ReconfirmRegistrationScreen extends StatefulWidget {
+  final String registerNumber;
+  final String cityCode;
+  const ReconfirmRegistrationScreen({super.key, required this.registerNumber,required this.cityCode});
 
+  @override
+  State<ReconfirmRegistrationScreen> createState() => _ReconfirmRegistrationScreenState();
+}
+
+class _ReconfirmRegistrationScreenState extends State<ReconfirmRegistrationScreen> {
+  TextEditingController reregisterNumberController = TextEditingController();
+  TextEditingController cityCodeController = TextEditingController();
+
+  @override
+  void initState() {
+    cityCodeController.text = widget.cityCode;
+    super.initState();
+  }
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -91,6 +109,7 @@ class ReconfirmRegistrationScreen extends StatelessWidget {
                             width: 55,
                             height: 48,
                             child: TextField(
+                              controller: cityCodeController,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w400,
@@ -132,6 +151,7 @@ class ReconfirmRegistrationScreen extends StatelessWidget {
                             width: 183,
                             height: 48,
                             child: TextField(
+                              controller: reregisterNumberController,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w400,
@@ -186,10 +206,18 @@ class ReconfirmRegistrationScreen extends StatelessWidget {
                         ),
                       ),
                       child: TextButton(
-                        onPressed: () async{
-                          SharedPreferences prefs = await SharedPreferences.getInstance();
-                          await prefs.setBool('isLoggedIn', true);
-                          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Homescreen(),), (route) => false,);
+                        onPressed: () {
+                          if(reregisterNumberController.text != widget.registerNumber){
+                            showAppSnackBar(context, 'registoration number dees not match, please re-enter');
+                            return;
+                          }
+                          SaveProfilePreferenceCubit.doctorRegistrationNumber = widget.registerNumber;
+                          showAppSnackBar(context, 'Registration number confirmed successfully');
+                          // Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Homescreen(),), (route) => false,);
+                        // onPressed: () async{
+                        //   SharedPreferences prefs = await SharedPreferences.getInstance();
+                        //   await prefs.setBool('isLoggedIn', true);
+                        //   Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Homescreen(),), (route) => false,);
                         },
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,

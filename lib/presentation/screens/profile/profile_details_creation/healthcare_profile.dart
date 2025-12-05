@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
-import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/medical_registration.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
 import 'package:myydoctor/presentation/widgets/profile/second_app_button.dart';
 
-class InfluencerTypeScreen extends StatelessWidget {
-  const InfluencerTypeScreen({super.key});
+class HealthcareProfile extends StatelessWidget {
+  const HealthcareProfile({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-
+    final screenHeight = MediaQuery.of(context).size.height;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -45,6 +44,7 @@ class InfluencerTypeScreen extends StatelessWidget {
                   final loading =
                     state is SavingPrefilePreferenceLoadingState;
                   return Stack(
+                    
                     children: [
                       Column(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -52,49 +52,50 @@ class InfluencerTypeScreen extends StatelessWidget {
                           SecondAppButton(
                             screenHeight: screenHeight,
                             screenWidth: screenWidth,
-                            text: 'Medical influencer',
+                            text: 'MBBS / MD / DO / DM/MCh',
                             ontap: () {
-                              context.read<SaveProfilePreferenceCubit>().savePreference('medical influencer', ProfileScreen());
+                              SaveProfilePreferenceCubit.fieldOfWork =
+                                  'MBBS / MD / DO / DM/MCH';
+                              context.read<SaveProfilePreferenceCubit>().savePreference('MBBS / MD / DO / DM/MCH', MedicalRegistrationScreen());
                             },
                           ),
-                          const SizedBox(height: 16),
-
                           SecondAppButton(
                             screenHeight: screenHeight,
                             screenWidth: screenWidth,
-                            text: 'Lifestyle Influencer',
+                            text: 'BSc / MSc / PhD',
                             ontap: () {
-                              context.read<SaveProfilePreferenceCubit>().savePreference('lifestyle influencer', ProfileScreen());
+                              SaveProfilePreferenceCubit.fieldOfWork =
+                                  'BSc / MSc / PhD';
+                                  context.read<SaveProfilePreferenceCubit>().savePreference('BSc / MSc / PhD', MedicalRegistrationScreen());
                             },
                           ),
-                          const SizedBox(height: 16),
-
                           SecondAppButton(
                             screenHeight: screenHeight,
                             screenWidth: screenWidth,
-                            text: 'IT influencer',
+                            text: 'Alternative Medicine',
                             ontap: () {
-                              context.read<SaveProfilePreferenceCubit>().savePreference('IT influencer', ProfileScreen());
+                              SaveProfilePreferenceCubit.fieldOfWork =
+                                  'Alternative Medicine';
+                              context.read<SaveProfilePreferenceCubit>().savePreference('Alternative Medicine', MedicalRegistrationScreen());
                             },
                           ),
-                          const SizedBox(height: 16),
-
                           SecondAppButton(
                             screenHeight: screenHeight,
                             screenWidth: screenWidth,
-                            text: 'Finance influencer',
+                            text: 'Nurse / PA',
                             ontap: () {
-                              context.read<SaveProfilePreferenceCubit>().savePreference('Finance influencer', ProfileScreen());
+                              SaveProfilePreferenceCubit.fieldOfWork = 'Nurse / PA';
+                              context.read<SaveProfilePreferenceCubit>().savePreference('Nurse / PA', MedicalRegistrationScreen());
                             },
                           ),
-                          const SizedBox(height: 16),
-
                           SecondAppButton(
                             screenHeight: screenHeight,
                             screenWidth: screenWidth,
-                            text: 'Legal influencer',
+                            text: 'Administrator /MBA',
                             ontap: () {
-                              context.read<SaveProfilePreferenceCubit>().savePreference('Legal influencer', ProfileScreen());
+                              SaveProfilePreferenceCubit.fieldOfWork =
+                                  'Administrator / MBA';
+                              context.read<SaveProfilePreferenceCubit>().savePreference('Administrator / MBA', MedicalRegistrationScreen());
                             },
                           ),
                         ],

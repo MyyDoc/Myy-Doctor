@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:myydoctor/presentation/screens/home/homescreen.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/selfie_screen.dart';
@@ -503,9 +502,9 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFDBF1F7), // light blue
-              Color(0xFF89AEBA), // mid tone
-              Color(0xFF172832), // dark navy
+              Color(0xFFDBF1F7),
+              Color(0xFF89AEBA),
+              Color(0xFF172832),
             ],
           ),
         ),
@@ -515,21 +514,16 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 100),
-              // Fixed logo section at the top
               Container(
                 padding: const EdgeInsets.only(top: 40, bottom: 20),
                 child: const AppLogo(),
               ),
-
-              // Scrollable content section
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Column(
                     children: [
                       const SizedBox(height: 20),
-
-                      // Email Field (only for signup)
                       if (_isSignUpMode) ...[
                         _buildTextField(
                           controller: _emailController,
@@ -537,14 +531,7 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                           keyboardType: TextInputType.emailAddress,
                         ),
                         const SizedBox(height: 14),
-                      ],
-
-                      // Full Name Field (only for signup)
-                      if (_isSignUpMode) ...[
-                        _buildTextField(
-                          controller: _fullNameController,
-                          hintText: 'Full Name',
-                        ),
+                        _buildTextField(controller: _fullNameController, hintText: 'Full Name'),
                         const SizedBox(height: 14),
                       ],
 
@@ -554,21 +541,15 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                         hintText: _isSignUpMode ? 'Username' : 'Username or Email',
                       ),
                       const SizedBox(height: 14),
-
-                      // Password Field
                       _buildPasswordField(
                         controller: _passwordController,
                         hintText: 'Password',
                         obscureText: _obscurePassword,
                         onToggleVisibility: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
+                          setState(() => _obscurePassword = !_obscurePassword);
                         },
                       ),
                       const SizedBox(height: 14),
-
-                      // Re-Enter Password Field (only for signup)
                       if (_isSignUpMode) ...[
                         _buildPasswordField(
                           controller: _reEnterPasswordController,
@@ -583,13 +564,10 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                         ),
                         const SizedBox(height: 14),
                       ],
-
-                      // Service upload text or Terms for signup
                       if (_isSignUpMode)
                         _buildTermsText()
                       else
                         _buildServiceText(),
-
                       const SizedBox(height: 16),
 
                       // Login/Signup Button
@@ -606,16 +584,12 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                         text: _isSignUpMode ? 'Sign Up' : 'Log In',
                       ),
                       const SizedBox(height: 24),
-
-                      // Social Login Icons
                       SocialLoginButtons(
                         onGoogleTap: _isLoading ? () {} : _handleGoogleSignIn,
                         onFacebookTap: _isLoading ? () {} : _handleFacebookSignIn,
                         onAppleTap: _isLoading ? () {} : _handleAppleSignIn,
                       ),
                       const SizedBox(height: 16),
-
-                      // Toggle between login and signup
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -642,8 +616,6 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                         ],
                       ),
                       const SizedBox(height: 8),
-
-                      // Forgot Password Link (only for login)
                       if (!_isSignUpMode)
                         GestureDetector(
                           onTap: _isLoading ? null : _handleForgotPassword,
@@ -655,8 +627,6 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
                             ),
                           ),
                         ),
-
-                      // Add some bottom padding to ensure scrollability
                       const SizedBox(height: 32),
                     ],
                   ),

@@ -1,12 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_age/save_age_bloc.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/profile_selection_screen.dart';
+import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
 import 'package:myydoctor/presentation/widgets/profile/second_app_button.dart';
 
-
-
 class AgeVerificationScreen extends StatefulWidget {
-  const AgeVerificationScreen({super.key,});
+  final String imagePath;
+  const AgeVerificationScreen({super.key, required this.imagePath});
 
   @override
   State<AgeVerificationScreen> createState() => _AgeVerificationScreenState();
@@ -56,7 +60,7 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
     final borderSize = 10;
     final outerRadius = 25.0;
     final middleRadius = outerRadius * 0.9;
-    // final innerRadius = outerRadius * 0.8;
+    final innerRadius = outerRadius * 0.8;
 
     return Container(
       decoration: BoxDecoration(
@@ -80,7 +84,7 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                       Card(
                         elevation: 4,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(middleRadius)
+                          borderRadius: BorderRadius.circular(middleRadius),
                         ),
                         child: Container(
                           width: 180,
@@ -88,26 +92,30 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(middleRadius),
                             color: AppColors.gold,
-                            border: Border.all(width: 10, color: Colors.amber)
+                            border: Border.all(width: 10, color: Colors.amber),
                           ),
                         ),
                       ),
                       // Inner actual profile background
-                      //  Container(
-                      //   width: boxHeight - borderSize * 2 - 2,
-                      //   height: boxHeight - borderSize * 2 - 2,
-                      //   decoration: BoxDecoration(
-                      //     borderRadius: BorderRadius.circular(innerRadius),
-                      //     color: AppColors.blue,
-                      //   ),
-                      //   child: const Center(
-                      //     child: Text(
-                      //       'Selfie',
-                      //       style: TextStyle(color: Colors.white),
-                      //     ),
-                      //   ),
-                      // ),
-                      // SizedBox(width: boxWidth - borderSize * 2 - 2,height: boxHeight - borderSize * 2 - 2, child: Image.file(File(widget.imagePath)))
+                      Container(
+                        width: boxHeight - borderSize * 2 - 2,
+                        height: boxHeight - borderSize * 2 - 2,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(innerRadius),
+                          color: AppColors.buttonBlue,
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Selfie',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: boxWidth - borderSize * 2 - 2,
+                        height: boxHeight - borderSize * 2 - 2,
+                        child: Image.file(File(widget.imagePath)),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -139,9 +147,46 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                   ),
                 ],
               ),
-              SecondAppButton(screenHeight: screenHeight, screenWidth: screenWidth,text: 'Confirm Age',ontap: (){
-                Navigator.push(context, MaterialPageRoute(builder: (_)=> ProfileTypeScreen()));
-              },)
+              BlocConsumer<SaveAgeBloc, SaveAgeState>(
+                listener: (context, state) {
+                  if (state is SavingAgeSuccessState) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => ProfileTypeScreen()),
+                    );
+                  }
+
+                  if (state is SavingAgeFailureState) {
+                    showAppSnackBar(context, state.error);
+                  }
+                },
+                builder: (context, state) {
+                  if (state is SaveAgeLoading) {
+                    return const CircularProgressIndicator();
+                  }
+
+                  return SecondAppButton(
+                    screenHeight: screenHeight,
+                    screenWidth: screenWidth,
+                    text: 'Confirm Age',
+                    ontap: () {
+                      if (_age1Controller.text.isEmpty ||
+                          _age2Controller.text.isEmpty) {
+                        showAppSnackBar(context, 'Please enter your age');
+                        return;
+                      }
+
+                      final age = int.parse(
+                        _age1Controller.text + _age2Controller.text,
+                      );
+
+                      context.read<SaveAgeBloc>().add(
+                        SaveAgeButtonPressedEvent(age: age),
+                      );
+                    },
+                  );
+                },
+              ),
             ],
           ),
         ),
