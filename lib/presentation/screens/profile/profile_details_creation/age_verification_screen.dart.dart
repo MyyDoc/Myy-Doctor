@@ -1,13 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_age/save_age_bloc.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/profile_selection_screen.dart';
 import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
 import 'package:myydoctor/presentation/widgets/profile/second_app_button.dart';
-
-
 
 class AgeVerificationScreen extends StatefulWidget {
   final String imagePath;
@@ -85,7 +84,7 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                       Card(
                         elevation: 4,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(middleRadius)
+                          borderRadius: BorderRadius.circular(middleRadius),
                         ),
                         child: Container(
                           width: 180,
@@ -93,12 +92,12 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(middleRadius),
                             color: AppColors.gold,
-                            border: Border.all(width: 10, color: Colors.amber)
+                            border: Border.all(width: 10, color: Colors.amber),
                           ),
                         ),
                       ),
                       // Inner actual profile background
-                       Container(
+                      Container(
                         width: boxHeight - borderSize * 2 - 2,
                         height: boxHeight - borderSize * 2 - 2,
                         decoration: BoxDecoration(
@@ -112,7 +111,11 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(width: boxWidth - borderSize * 2 - 2,height: boxHeight - borderSize * 2 - 2, child: Image.file(File(widget.imagePath)))
+                      SizedBox(
+                        width: boxWidth - borderSize * 2 - 2,
+                        height: boxHeight - borderSize * 2 - 2,
+                        child: Image.file(File(widget.imagePath)),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -144,14 +147,46 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                   ),
                 ],
               ),
-              SecondAppButton(screenHeight: screenHeight, screenWidth: screenWidth,text: 'Confirm Age',ontap: (){
-                if(_age1Controller.text.isEmpty || _age2Controller.text.isEmpty){
-                  showAppSnackBar(context, 'Plaase enter your age to proceed');
-                  return;
-                }
-                SaveProfilePreferenceCubit.age = int.parse(_age1Controller.text + _age2Controller.text);
-                Navigator.push(context, MaterialPageRoute(builder: (_)=> ProfileTypeScreen()));
-              },)
+              BlocConsumer<SaveAgeBloc, SaveAgeState>(
+                listener: (context, state) {
+                  if (state is SavingAgeSuccessState) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => ProfileTypeScreen()),
+                    );
+                  }
+
+                  if (state is SavingAgeFailureState) {
+                    showAppSnackBar(context, state.error);
+                  }
+                },
+                builder: (context, state) {
+                  if (state is SaveAgeLoading) {
+                    return const CircularProgressIndicator();
+                  }
+
+                  return SecondAppButton(
+                    screenHeight: screenHeight,
+                    screenWidth: screenWidth,
+                    text: 'Confirm Age',
+                    ontap: () {
+                      if (_age1Controller.text.isEmpty ||
+                          _age2Controller.text.isEmpty) {
+                        showAppSnackBar(context, 'Please enter your age');
+                        return;
+                      }
+
+                      final age = int.parse(
+                        _age1Controller.text + _age2Controller.text,
+                      );
+
+                      context.read<SaveAgeBloc>().add(
+                        SaveAgeButtonPressedEvent(age: age),
+                      );
+                    },
+                  );
+                },
+              ),
             ],
           ),
         ),
