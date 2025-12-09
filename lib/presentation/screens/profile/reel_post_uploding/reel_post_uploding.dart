@@ -49,7 +49,7 @@ class _ReelPostUplodingScreenState extends State<ReelPostUplodingScreen> {
                             allowMultiple: false,
                             type: FileType.image,
                           );
-            
+
                           if (result != null && result.files.isNotEmpty) {
                             setState(() {
                               pickedFilePath = result.files.single.path ?? '';
@@ -97,7 +97,7 @@ class _ReelPostUplodingScreenState extends State<ReelPostUplodingScreen> {
                     ),
                     SizedBox(height: 20),
                     TextField(
-                      // controller: controller,
+                      controller: captionController,
                       keyboardType: TextInputType.multiline,
                       minLines: 1,
                       maxLines: null, // expands infinitely
@@ -111,17 +111,39 @@ class _ReelPostUplodingScreenState extends State<ReelPostUplodingScreen> {
                     SizedBox(height: 90),
                   ],
                 ),
-            
-                SecondAppButton(
-                  screenHeight: screenHeight,
-                  screenWidth: screenWidth,
-                  text: 'Post',
-                  ontap: () {
-                    if(pickedFilePath.isEmpty || captionController.text.isEmpty){
-                      showAppSnackBar(context, 'Please select picture and write caption');
-                      return;
+
+                BlocConsumer<UploadPicCubit, UploadPicState>(
+                  listener: (context, state) {
+                    if(state is UploadPicErrorState){
+                      showAppSnackBar(context, state.error);
                     }
-                    context.read<UploadPicCubit>().uploadPic(picPath: pickedFilePath, caption: captionController.text);
+                    if(state is UploadPicSuccessState){
+                      Navigator.pop(context);
+                    }
+                  },
+                  builder: (context, state) {
+                    if(state is UploadLoadingState){
+                      return CircularProgressIndicator();
+                    }
+                    return SecondAppButton(
+                      screenHeight: screenHeight,
+                      screenWidth: screenWidth,
+                      text: 'Post',
+                      ontap: () {
+                        if (pickedFilePath.isEmpty ||
+                            captionController.text.isEmpty) {
+                          showAppSnackBar(
+                            context,
+                            'Please select picture and write caption',
+                          );
+                          return;
+                        }
+                        context.read<UploadPicCubit>().uploadPic(
+                          picPath: pickedFilePath,
+                          caption: captionController.text,
+                        );
+                      },
+                    );
                   },
                 ),
               ],
