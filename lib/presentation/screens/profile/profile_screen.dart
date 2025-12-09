@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
+import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/reel_post_uploding.dart';
 import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
 import 'package:myydoctor/presentation/widgets/profile/goto_payment_container.dart';
@@ -51,7 +52,11 @@ class _ProfileScreenState extends State<ProfileScreen>
         leading: Icon(Icons.lock_person_rounded, color: Colors.amber),
         automaticallyImplyLeading: false,
         actions: [
-          Icon(Icons.add_box_outlined, color: Color(0xFFD4AF37), size: 30),
+          GestureDetector(
+            onTap: (){
+              Navigator.push(context, MaterialPageRoute(builder: (context)=> ReelPostUplodingScreen()));
+            },
+            child: Icon(Icons.add_box_outlined, color: Color(0xFFD4AF37), size: 30)),
           GestureDetector(
             onTap:
                 () => Navigator.push(
