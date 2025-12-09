@@ -1,5 +1,8 @@
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:myydoctor/data/payment/payment_model.dart';
+import 'package:myydoctor/domain/payment/payments_repository.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -10,265 +13,230 @@ class PaymentScreen extends StatefulWidget {
 
 class _PaymentScreenState extends State<PaymentScreen> {
   int selectedPlanIndex = 0;
-  int currentDotIndex = 0;
+  bool isLoading = false;
+  List<Payment> availablePayments = [];
 
-  final List<Map<String, dynamic>> plans = [
-    {
-      'duration': '1',
-      'period': 'Month',
-      'price': '₹1000/Mo',
-      'total': '₹1000',
-    },
-    {
-      'duration': '3',
-      'period': 'Months',
-      'price': '₹900/Mo',
-      'total': '₹2700',
-    },
-    {
-      'duration': '6',
-      'period': 'Months',
-      'price': '₹800/Mo',
-      'total': '₹4800',
-    },
-    {
-      'duration': '12',
-      'period': 'Months',
-      'price': '₹700/Mo',
-      'total': '₹8400',
-    },
-  ];
+  fetchAvailablePaymentOffers() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    availablePayments = await PaymentsRepository().getPayments();
+
+    setState(() {
+      isLoading = false;
+    });
+
+    print(availablePayments);
+    print("Payments fetched ✅");
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchAvailablePaymentOffers();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0E1A23),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Close Button
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 24,
-                    ),
+        child:
+            isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : availablePayments.isEmpty
+                ? const Center(
+                  child: Text(
+                    "No payments available",
+                    style: TextStyle(color: Colors.white),
                   ),
-                ],
-              ),
-            ),
-
-            Expanded(
-              child: GestureDetector(
-                onHorizontalDragEnd: (details) {
-                  if (details.primaryVelocity! > 0) {
-                    // Swiping right (previous)
-                    setState(() {
-                      if (currentDotIndex > 0) {
-                        currentDotIndex--;
-                      }
-                    });
-                  } else if (details.primaryVelocity! < 0) {
-                    // Swiping left (next)
-                    setState(() {
-                      if (currentDotIndex < 5) {
-                        currentDotIndex++;
-                      }
-                    });
-                  }
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 10),
-
-                      // Title
-                      Text(
-                        'MYYDOCTOR\nPREMIUM',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFFF6C14D),
-                          height: 1.2,
-                        ),
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      // Oval Avatar placeholder
-                      Container(
-                        width: 60,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: Colors.white60,
-                          borderRadius: BorderRadius.circular(30), // Creates oval shape
-                          border: Border.all(
-                            color: const Color(0xFFF6C14D),
-                            width: 3,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      // Price
-                      Text(
-                        '₹1000',
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-
-                      const SizedBox(height: 6),
-
-                      Text(
-                        'Watch unlimited content',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white70,
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Dots
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(6, (index) {
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: index == currentDotIndex
-                                  ? const Color(0xFFF6C14D)
-                                  : Colors.white54,
+                )
+                : Column(
+                  children: [
+                    // Close Button
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                          );
-                        }),
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      // Plan box
-                      Container(
-                        width: 150,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 24,
-                          horizontal: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: const Color(0xFFF6C14D),
-                            width: 2,
                           ),
-                          color: Colors.black,
-                        ),
+                        ],
+                      ),
+                    ),
+
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Column(
                           children: [
-                            Text(
-                              plans[currentDotIndex % plans.length]['duration'],
-                              style: GoogleFonts.playfairDisplay(
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              plans[currentDotIndex % plans.length]['period'],
-                              style: GoogleFonts.playfairDisplay(
-                                fontSize: 14,
-                                color: Colors.white70,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              plans[currentDotIndex % plans.length]['price'],
-                              style: GoogleFonts.playfairDisplay(
-                                fontSize: 14,
-                                color: const Color(0xFFF6C14D),
-                              ),
-                            ),
                             const SizedBox(height: 10),
+
+                            // Title
                             Text(
-                              plans[currentDotIndex % plans.length]['total'],
+                              'MYYDOCTOR\nPREMIUM',
+                              textAlign: TextAlign.center,
                               style: GoogleFonts.playfairDisplay(
                                 fontSize: 26,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: const Color(0xFFF6C14D),
+                                height: 1.2,
                               ),
                             ),
+
+                            const SizedBox(height: 30),
+
+                            // Oval Avatar placeholder
+                            Container(
+                              width: 60,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: Colors.white60,
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(
+                                  color: const Color(0xFFF6C14D),
+                                  width: 3,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Dots
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(
+                                availablePayments.length,
+                                (index) {
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                    ),
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color:
+                                          index == selectedPlanIndex
+                                              ? const Color(0xFFF6C14D)
+                                              : Colors.white54,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+
+                            const SizedBox(height: 30),
+
+                            // Carousel
+                            CarouselSlider(
+                              options: CarouselOptions(
+                                height: 200,
+                                enlargeCenterPage: true,
+                                enableInfiniteScroll: false,
+                                autoPlay: false,
+                                onPageChanged: (index, reason) {
+                                  setState(() {
+                                    selectedPlanIndex = index;
+                                  });
+                                },
+                              ),
+                              items:
+                                  availablePayments.map((payment) {
+                                    return Builder(
+                                      builder: (BuildContext context) {
+                                        return Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.black,
+                                            border: Border.all(color: Colors.amber),
+                                            borderRadius: BorderRadius.circular(2)
+                                          ),
+                                          padding: EdgeInsets.all(8),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment: CrossAxisAlignment.center,
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(payment.duration, style: TextStyle(color: Colors.white, fontSize: 25),),
+                                              const SizedBox(height: 10,),
+                                              Text("${payment.amount}/month", style: TextStyle(color: Colors.amber, fontSize: 30)),
+                                              const SizedBox(height: 10,),
+                                              Text(
+                                                "₹ ${payment.amount}", style: TextStyle(color: Colors.white, fontSize: 30),
+                                              )
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  }).toList(),
+                            ),
+
+                            const Spacer(),
+
+                            // CONTINUE Button
+                            Container(
+                              width: double.infinity,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(
+                                  color: const Color(0xFFF6C14D),
+                                  width: 3,
+                                ),
+                              ),
+                              child: Container(
+                                margin: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(
+                                    color: const Color(0xFFF6C14D),
+                                    width: 6,
+                                  ),
+                                  color: const Color(0xFF0E1A23),
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    final selected =
+                                        availablePayments[selectedPlanIndex];
+                                    print(
+                                      'Selected plan: ${selected.paymentId} - ${selected.description}',
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: Text(
+                                    'CONTINUE',
+                                    style: GoogleFonts.playfairDisplay(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFFF6C14D),
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 30),
                           ],
                         ),
                       ),
-
-                      const Spacer(),
-
-                      // CONTINUE Button with double border effect
-                      Container(
-                        width: double.infinity,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                            color: const Color(0xFFF6C14D),
-                            width: 3,
-                          ),
-                        ),
-                        child: Container(
-                          margin: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(
-                              color: const Color(0xFFF6C14D),
-                              width: 6,
-                            ),
-                            color: const Color(0xFF0E1A23),
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              print('Selected plan: ${plans[selectedPlanIndex]}');
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              'CONTINUE',
-                              style: GoogleFonts.playfairDisplay(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFFF6C14D),
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 30),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
