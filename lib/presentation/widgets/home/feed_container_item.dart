@@ -2,9 +2,15 @@
 import 'package:flutter/material.dart';
 
 class FeedContainerItem extends StatelessWidget {
+  final String? postImageUrl;
+  final String? personName;
+  final String? profileImageUrl;
   const FeedContainerItem({
     super.key,
     required this.textTheme,
+     this.postImageUrl,
+     this.personName,
+     this.profileImageUrl,
   });
 
   final TextTheme textTheme;
@@ -20,11 +26,11 @@ class FeedContainerItem extends StatelessWidget {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundImage: NetworkImage("https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc"),
+                  backgroundImage: NetworkImage( profileImageUrl == null ? "https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc": profileImageUrl!),
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  "Antony Maxwell",
+                  personName ?? "Antony Maxwell",
                   style: textTheme.bodyLarge!.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -46,7 +52,7 @@ class FeedContainerItem extends StatelessWidget {
             width: double.infinity,
             height: 300,
             child: Image.network(
-              "https://imgs.search.brave.com/8SB8c98eLDaKU2XtzBkYn-3RMNGpc37mjtZVHwmXOHI/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9h/ZXJpYWwtdmlldy1n/cmVlbi1tb3VudGFp/bm91cy1zY2VuZXJ5/LXN1bnJpc2VfMTgx/NjI0LTEyMzE5Lmpw/Zz9zZW10PWFpc19o/eWJyaWQmdz03NDA",
+              postImageUrl == null ? "https://imgs.search.brave.com/8SB8c98eLDaKU2XtzBkYn-3RMNGpc37mjtZVHwmXOHI/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9h/ZXJpYWwtdmlldy1n/cmVlbi1tb3VudGFp/bm91cy1zY2VuZXJ5/LXN1bnJpc2VfMTgx/NjI0LTEyMzE5Lmpw/Zz9zZW10PWFpc19o/eWJyaWQmdz03NDA" : postImageUrl!,
               fit: BoxFit.cover,
             ),
           ),

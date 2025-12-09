@@ -7,6 +7,7 @@ import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
 import 'package:myydoctor/presentation/widgets/profile/goto_payment_container.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
 import 'package:myydoctor/presentation/widgets/profile/vip.dart';
+import 'package:myydoctor/repository/pic_post_repository.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -53,10 +54,20 @@ class _ProfileScreenState extends State<ProfileScreen>
         automaticallyImplyLeading: false,
         actions: [
           GestureDetector(
-            onTap: (){
-              Navigator.push(context, MaterialPageRoute(builder: (context)=> ReelPostUplodingScreen()));
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReelPostUplodingScreen(),
+                ),
+              );
             },
-            child: Icon(Icons.add_box_outlined, color: Color(0xFFD4AF37), size: 30)),
+            child: Icon(
+              Icons.add_box_outlined,
+              color: Color(0xFFD4AF37),
+              size: 30,
+            ),
+          ),
           GestureDetector(
             onTap:
                 () => Navigator.push(
@@ -145,13 +156,24 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ],
                 ),
               ),
-              child: ListView.separated(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                itemCount: 10,
-                separatorBuilder:
-                    (context, index) => const SizedBox(height: 30),
-                itemBuilder:
-                    (context, index) => FeedContainerItem(textTheme: textTheme),
+
+              child: StreamBuilder(
+                stream: PicPostRepository().getUserPostsStream(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  final posts = snapshot.data!;
+                  return ListView.separated(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    itemCount: posts.length,
+                    separatorBuilder:
+                        (context, index) => const SizedBox(height: 30),
+                    itemBuilder:
+                        (context, index) =>
+                            FeedContainerItem(textTheme: textTheme,postImageUrl: posts[index].imageUrl,personName: posts[index].name,profileImageUrl: posts[index].profileImageUrl,),
+                  );
+                },
               ),
             ),
 
