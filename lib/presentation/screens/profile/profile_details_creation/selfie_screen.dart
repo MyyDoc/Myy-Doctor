@@ -1,10 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/age_verification_screen.dart.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_pic/save_profile_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
 import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
+
 class SelfieScreen extends StatefulWidget {
   const SelfieScreen({super.key});
 
@@ -16,9 +19,9 @@ class _SelfieScreenState extends State<SelfieScreen> {
   XFile? _image;
   @override
   void dispose() {
-    
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -43,10 +46,12 @@ class _SelfieScreenState extends State<SelfieScreen> {
           children: [
             Center(
               child: InkWell(
-                onTap: ()async{
+                onTap: () async {
                   final ImagePicker picker = ImagePicker();
-                  XFile? image = await picker.pickImage(source: ImageSource.gallery,);
-                  if(image != null){
+                  XFile? image = await picker.pickImage(
+                    source: ImageSource.gallery,
+                  );
+                  if (image != null) {
                     setState(() {
                       SaveProfilePreferenceCubit.profileImage = image;
                       _image = image;
@@ -66,24 +71,29 @@ class _SelfieScreenState extends State<SelfieScreen> {
                     ),
                     // Inner oval (content)
                     ClipOval(
-                      child:  Container(
+                      child: Container(
                         width: ovalWidth,
                         height: ovalHeight,
                         color: Colors.white,
-                        child: _image == null ? Center(
-                          child: Text(
-                            'Selfie',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ) : ClipOval(
-                          child: Image.file(
-                            File(_image!.path),
-                            width: ovalWidth,
-                            height: ovalHeight,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      )
+                        child:
+                            _image == null
+                                ? Center(
+                                  child: Text(
+                                    'Selfie',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                )
+                                : ClipOval(
+                                  child: Image.file(
+                                    File(_image!.path),
+                                    width: ovalWidth,
+                                    height: ovalHeight,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                      ),
                     ),
                   ],
                 ),
@@ -100,13 +110,49 @@ class _SelfieScreenState extends State<SelfieScreen> {
               textAlign: TextAlign.center,
             ),
             SizedBox(height: screenHeight * 0.02),
-            IconButton(onPressed: (){
-              if(_image == null){
-                showAppSnackBar(context, 'Please select and Image to proceed');
-                return;
-              }
-               Navigator.push(context, MaterialPageRoute(builder: (_)=> AgeVerificationScreen(imagePath: _image?.path ?? '',)));
-            }, icon: Icon(Icons.arrow_forward_ios_outlined,color: AppColors.white,))
+            BlocConsumer<SaveProfilePicCubit, SaveProfilePicState>(
+              listener: (context, state) {
+                if(state is ProfilePicSavedSuccessState){
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (_) => AgeVerificationScreen(
+                              imagePath: _image?.path ?? '',
+                            ),
+                      ),
+                    );
+                }
+                if(state is ProfilePicSavedFailureState){
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(state.error)),
+                  );
+                }
+              },
+              builder: (context, state) {
+                if(state is SaveProfilePicCubitLoadingState){
+                  return const CircularProgressIndicator(
+                    color: Colors.white,
+                  );
+                }
+                return IconButton(
+                  onPressed: () {
+                    if (_image == null) {
+                      showAppSnackBar(
+                        context,
+                        'Please select and Image to proceed',
+                      );
+                      return;
+                    }
+                    context.read<SaveProfilePicCubit>().uploadImage(_image!);
+                  },
+                  icon: Icon(
+                    Icons.arrow_forward_ios_outlined,
+                    color: AppColors.white,
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
