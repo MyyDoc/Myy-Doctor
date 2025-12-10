@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:myydoctor/data/posts/pic_post_model.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
@@ -52,7 +55,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             Icon(Icons.arrow_drop_down, color: Color(0xFFD4AF37)),
           ],
         ),
-        leading: Icon(Icons.lock_person_rounded, color: Colors.amber),
+        leading: GestureDetector(onTap: ()async{
+         await FirebaseAuth.instance.signOut();
+        }, child: Icon(Icons.lock_person_rounded, color: Colors.amber)),
         automaticallyImplyLeading: false,
         actions: [
           GestureDetector(

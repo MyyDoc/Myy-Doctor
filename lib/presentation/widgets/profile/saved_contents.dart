@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:myydoctor/data/posts/pic_post_model.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_feeds_detailed_screen.dart';
 import 'package:myydoctor/repository/pic_post_repository.dart';
 
@@ -15,11 +16,19 @@ class SavedContents extends StatefulWidget {
 class _SavedContentsState extends State<SavedContents> with AutomaticKeepAliveClientMixin<SavedContents> {
   @override
   bool get wantKeepAlive => true;
+  late final Stream<List<PicPostModel>> userPostFeed;
+
+  @override
+  void initState() {
+    super.initState();
+    userPostFeed = PicPostRepository().getPostsStream(useOwnerProfile: false);
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     return StreamBuilder(
-      stream: PicPostRepository().getPostsStream(useOwnerProfile: false),
+      stream: userPostFeed,
       builder: (context, asyncSnapshot) {
         if(!asyncSnapshot.hasData){
           return Center(child: CircularProgressIndicator(),);
@@ -46,3 +55,4 @@ class _SavedContentsState extends State<SavedContents> with AutomaticKeepAliveCl
     );
   }
 }
+// Mc4jZ7kVD0RaEdMpfaB1QNtzvHh1
