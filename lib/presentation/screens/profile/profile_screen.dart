@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/data/posts/pic_post_model.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/reel_post_uploding.dart';
 import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
+import 'package:myydoctor/presentation/widgets/profile/global_post_feed.dart';
 import 'package:myydoctor/presentation/widgets/profile/goto_payment_container.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
 import 'package:myydoctor/presentation/widgets/profile/vip.dart';
@@ -145,37 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF1F323C), // Top
-                    Color(0xFF000000), // Bottom
-                  ],
-                ),
-              ),
-
-              child: StreamBuilder(
-                stream: PicPostRepository().getUserPostsStream(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-                  final posts = snapshot.data!;
-                  return ListView.separated(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    itemCount: posts.length,
-                    separatorBuilder:
-                        (context, index) => const SizedBox(height: 30),
-                    itemBuilder:
-                        (context, index) =>
-                            FeedContainerItem(textTheme: textTheme,postImageUrl: posts[index].imageUrl,personName: posts[index].name,profileImageUrl: posts[index].profileImageUrl,),
-                  );
-                },
-              ),
-            ),
+            GlobalPostFeed(),
 
             Column(
               children: [

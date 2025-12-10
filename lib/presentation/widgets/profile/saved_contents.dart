@@ -1,36 +1,48 @@
 
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_feeds_detailed_screen.dart';
+import 'package:myydoctor/repository/pic_post_repository.dart';
 
-class SavedContents extends StatelessWidget {
+class SavedContents extends StatefulWidget {
   const SavedContents({
     super.key,
   });
 
   @override
+  State<SavedContents> createState() => _SavedContentsState();
+}
+
+class _SavedContentsState extends State<SavedContents> with AutomaticKeepAliveClientMixin<SavedContents> {
+  @override
+  bool get wantKeepAlive => true;
+  @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 1,
-        mainAxisSpacing: 1,
-        childAspectRatio: 0.8
-      ),
-      itemCount: 14, 
-      itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => SavedFeedsDetailedScreen(),));
-          },
-          child: Container(
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.amber,
-            ),
-            child: Text("Item $index"),
+    super.build(context);
+    return StreamBuilder(
+      stream: PicPostRepository().getPostsStream(useOwnerProfile: false),
+      builder: (context, asyncSnapshot) {
+        if(!asyncSnapshot.hasData){
+          return Center(child: CircularProgressIndicator(),);
+        }
+        final posts = asyncSnapshot.data!;
+        return GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 1,
+            mainAxisSpacing: 1,
+            childAspectRatio: 0.8
           ),
+          itemCount: posts.length, 
+          itemBuilder: (context, index) {
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => SavedFeedsDetailedScreen(),));
+              },
+              child: Image.network(posts[index].imageUrl, fit: BoxFit.cover,)
+            );
+          },
         );
-      },
+      }
     );
   }
 }
