@@ -55,7 +55,7 @@ class _SavedFeedsDetailedScreenState extends State<SavedFeedsDetailedScreen> {
                 itemCount: posts.length,
                 separatorBuilder: (context, index) => const SizedBox(height: 30),
                 itemBuilder:
-                    (context, index) => FeedContainerItem(textTheme: textTheme,personName: posts[index].name,postImageUrl: posts[index].imageUrl,profileImageUrl: posts[index].profileImageUrl,),
+                    (context, index) => FeedContainerItem(textTheme: textTheme,personName: posts[index].name,postImageUrl: posts[index].imageUrl,profileImageUrl: posts[index].profileImageUrl,postId: posts[index].postId,),
               );
             }
           ),

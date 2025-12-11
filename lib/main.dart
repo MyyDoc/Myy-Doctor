@@ -12,7 +12,10 @@ import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/u
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  if (Firebase.apps.isEmpty) {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+}
+
   runApp(
     MultiBlocProvider(
       providers: [

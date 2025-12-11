@@ -18,20 +18,17 @@ class _GlobalPostFeedState extends State<GlobalPostFeed>
 
   @override
   bool get wantKeepAlive => true;
-  late StreamSubscription<List<PicPostModel>> _sub;
-late Stream<List<PicPostModel>> _stream;
+late final Stream<List<PicPostModel>> globalUserPostFeed;
 
 
   @override
   void initState() {
     super.initState();
-    _stream = PicPostRepository().getPostsStream(useOwnerProfile: true);
-    _sub = _stream.listen((_) {});
+    globalUserPostFeed = PicPostRepository().getPostsStream(useOwnerProfile: true);
   }
 
   @override
   void dispose() {
-    _sub.cancel();
     super.dispose();
   }
 
@@ -53,7 +50,7 @@ late Stream<List<PicPostModel>> _stream;
         ),
       ),
       child: StreamBuilder(
-        stream: _stream,
+        stream: globalUserPostFeed,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());

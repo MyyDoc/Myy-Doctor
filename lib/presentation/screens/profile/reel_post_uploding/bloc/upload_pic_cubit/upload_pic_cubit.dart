@@ -62,4 +62,47 @@ class UploadPicCubit extends Cubit<UploadPicState> {
       print(e);
     }
   }
+
+  deletePost({required String postId}) async {
+  final user = FirebaseAuth.instance.currentUser;
+
+  emit(UploadLoadingState());
+
+  try {
+    final uid = user?.uid;
+    if (uid == null) {
+      emit(UploadPicErrorState(error: 'User not logged in'));
+      return;
+    }
+
+    final postRef = FirebaseDatabase.instance.ref()
+        .child('posts')
+        .child(uid)
+        .child(postId);
+
+    // 1. Fetch the post to get imageUrl
+    final snapshot = await postRef.get();
+    if (!snapshot.exists) {
+      emit(UploadPicErrorState(error: 'Post not found'));
+      return;
+    }
+
+    final data = snapshot.value as Map;
+    final imageUrl = data['imageUrl'];
+
+    // 2. Delete image from Firebase Storage
+    if (imageUrl != null) {
+      final storageRef = FirebaseStorage.instance.refFromURL(imageUrl);
+      await storageRef.delete();
+    }
+
+    // 3. Delete post data from Realtime Database
+    await postRef.remove();
+
+    emit(UploadPicSuccessState());
+  } catch (e) {
+    emit(UploadPicErrorState(error: e.toString()));
+  }
+}
+
 }

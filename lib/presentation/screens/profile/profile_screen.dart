@@ -1,18 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:myydoctor/data/posts/pic_post_model.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/reel_post_uploding.dart';
-import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
 import 'package:myydoctor/presentation/widgets/profile/global_post_feed.dart';
 import 'package:myydoctor/presentation/widgets/profile/goto_payment_container.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
 import 'package:myydoctor/presentation/widgets/profile/vip.dart';
-import 'package:myydoctor/repository/pic_post_repository.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});

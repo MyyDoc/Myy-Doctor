@@ -21,21 +21,16 @@ class PicPostModel {
     required this.createdAt,
   });
 
-  factory PicPostModel.fromMap(Map<dynamic, dynamic> map) {
-    return PicPostModel(
-      postId: map['postId'] ?? '',
-      ownerId: map['ownerId'] ?? '',
-      caption: map['caption'] ?? '',
-      imageUrl: map['imageUrl'] ?? '',
-      likeCount: (map['likeCount'] ?? 0) is int
-          ? map['likeCount'] as int
-          : int.tryParse(map['likeCount'].toString()) ?? 0,
-      commentCount: (map['commentCount'] ?? 0) is int
-          ? map['commentCount'] as int
-          : int.tryParse(map['commentCount'].toString()) ?? 0,
-      createdAt: (map['createdAt'] ?? 0) is int
-          ? map['createdAt'] as int
-          : int.tryParse(map['createdAt'].toString()) ?? 0,
-    );
-  }
+factory PicPostModel.fromMap(Map<dynamic, dynamic> map, {String? id}) {
+  return PicPostModel(
+    postId: id ?? map['postId'] ?? '',
+    ownerId: map['ownerId'] ?? '',
+    caption: map['caption'] ?? '',
+    imageUrl: map['imageUrl'] ?? '',
+    likeCount: map['likeCount'] ?? 0,
+    commentCount: map['commentCount'] ?? 0,
+    createdAt: map['createdAt'] ?? 0,
+  );
+}
+
 }
