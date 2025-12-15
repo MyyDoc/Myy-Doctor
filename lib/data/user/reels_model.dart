@@ -1,69 +1,33 @@
-
-// ==================== REEL MODEL ====================
-class ReelModel {
+class ReelItems {
   final String reelId;
-  final String userId;
+  final String ownerId;
   final String videoUrl;
-  final String? thumbnailUrl;
-  final String? caption;
-  final DateTime createdAt;
-  final int likesCount;
-  final int commentsCount;
-  final int sharesCount;
-  final int viewsCount;
-  final bool isTrending;
-  final List<String> hashtags;
-  final String? audioUrl;
+  final String caption;
+  final int createdAt;
+  final int likeCount;
+  final int commentCount;
 
-  ReelModel({
+  ReelItems({
     required this.reelId,
-    required this.userId,
+    required this.ownerId,
     required this.videoUrl,
-    this.thumbnailUrl,
-    this.caption,
+    required this.caption,
     required this.createdAt,
-    this.likesCount = 0,
-    this.commentsCount = 0,
-    this.sharesCount = 0,
-    this.viewsCount = 0,
-    this.isTrending = false,
-    this.hashtags = const [],
-    this.audioUrl,
+    required this.likeCount,
+    required this.commentCount,
   });
 
-  Map<String, dynamic> toJson() {
-    return {
-      'reelId': reelId,
-      'userId': userId,
-      'videoUrl': videoUrl,
-      'thumbnailUrl': thumbnailUrl,
-      'caption': caption,
-      'createdAt': createdAt.toIso8601String(),
-      'likesCount': likesCount,
-      'commentsCount': commentsCount,
-      'sharesCount': sharesCount,
-      'viewsCount': viewsCount,
-      'isTrending': isTrending,
-      'hashtags': hashtags,
-      'audioUrl': audioUrl,
-    };
-  }
+  factory ReelItems.fromMap(Map<String, dynamic> map) {
+    final createdAtRaw = map['createdAt'];
 
-  factory ReelModel.fromJson(Map<String, dynamic> json) {
-    return ReelModel(
-      reelId: json['reelId'] ?? '',
-      userId: json['userId'] ?? '',
-      videoUrl: json['videoUrl'] ?? '',
-      thumbnailUrl: json['thumbnailUrl'],
-      caption: json['caption'],
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
-      likesCount: json['likesCount'] ?? 0,
-      commentsCount: json['commentsCount'] ?? 0,
-      sharesCount: json['sharesCount'] ?? 0,
-      viewsCount: json['viewsCount'] ?? 0,
-      isTrending: json['isTrending'] ?? false,
-      hashtags: List<String>.from(json['hashtags'] ?? []),
-      audioUrl: json['audioUrl'],
+    return ReelItems(
+      reelId: map['reelId']?.toString() ?? '',
+      ownerId: map['ownerId']?.toString() ?? '',
+      videoUrl: map['videoUrl']?.toString() ?? '',
+      caption: map['caption']?.toString() ?? '',
+      createdAt: createdAtRaw is int ? createdAtRaw : 0,
+      likeCount: map['likeCount'] is int ? map['likeCount'] : 0,
+      commentCount: map['commentCount'] is int ? map['commentCount'] : 0,
     );
   }
 }

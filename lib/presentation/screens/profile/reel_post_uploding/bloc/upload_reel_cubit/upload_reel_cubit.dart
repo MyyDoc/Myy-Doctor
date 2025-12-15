@@ -18,61 +18,51 @@ class UploadReelCubit extends Cubit<UploadReelState> {
     required String videoPath,
     required String caption,
   }) async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    emit(UploadingReelProgressState(progress: 0));
+    emit( UploadingReelProgressState(progress: 0));
 
     try {
+      final user = FirebaseAuth.instance.currentUser;
       final uid = user?.uid;
+
       if (uid == null) {
-        emit(UploadReelErrorState(error: 'User not logged in'));
+        emit( UploadReelErrorState(error: 'User not logged in'));
         return;
       }
 
       final file = File(videoPath);
 
-      // DB refs
-      final reelRef =
-          FirebaseDatabase.instance.ref().child('reels').child(uid);
-      final newReelRef = reelRef.push();
-      final reelId = newReelRef.key;
+      // Generate reelId
+      final reelId =
+          FirebaseDatabase.instance.ref().push().key;
 
       if (reelId == null) {
-        emit(UploadReelErrorState(error: 'Failed to generate reel ID'));
+        emit( UploadReelErrorState(error: 'Failed to generate reel ID'));
         return;
       }
 
-      // Storage ref
+      // Storage
       final storageRef = FirebaseStorage.instance
           .ref()
           .child('reels')
           .child(uid)
           .child('$reelId.mp4');
 
-      // Start upload
       final uploadTask = storageRef.putFile(file);
 
-      // Cancel any previous listener
       await _uploadSubscription?.cancel();
 
-      // Listen to progress
       _uploadSubscription = uploadTask.snapshotEvents.listen(
         (snapshot) {
           final progress =
               snapshot.bytesTransferred / snapshot.totalBytes;
           emit(UploadingReelProgressState(progress: progress));
         },
-        onError: (e) {
-          emit(UploadReelErrorState(error: e.toString()));
-        },
       );
 
-      // Wait for completion
-      final completedSnapshot = await uploadTask;
-      final downloadUrl = await completedSnapshot.ref.getDownloadURL();
+      final completed = await uploadTask;
+      final downloadUrl = await completed.ref.getDownloadURL();
 
-      // Save to DB
-      await newReelRef.set({
+      final reelData = {
         'reelId': reelId,
         'ownerId': uid,
         'videoUrl': downloadUrl,
@@ -80,11 +70,20 @@ class UploadReelCubit extends Cubit<UploadReelState> {
         'createdAt': ServerValue.timestamp,
         'likeCount': 0,
         'commentCount': 0,
-        'likes': {},
-        'comments': {},
-      });
+      };
 
-      // Cleanup
+      // 🔥 DUAL WRITE (MANDATORY)
+      final userReelRef = FirebaseDatabase.instance
+          .ref('userReels/$uid/$reelId');
+
+      final feedReelRef = FirebaseDatabase.instance
+          .ref('reelsFeed/$reelId');
+
+      await Future.wait([
+        userReelRef.set(reelData),
+        feedReelRef.set(reelData),
+      ]);
+
       await _uploadSubscription?.cancel();
       _uploadSubscription = null;
 
@@ -96,40 +95,39 @@ class UploadReelCubit extends Cubit<UploadReelState> {
     }
   }
 
-  Future<void> deleteReel({required String reelId}) async {
-    final user = FirebaseAuth.instance.currentUser;
-
+  Future<void> deleteReel({
+    required String reelId,
+    required String ownerId,
+  }) async {
     emit(UploadReelLoadingState());
 
     try {
-      final uid = user?.uid;
-      if (uid == null) {
-        emit(UploadReelErrorState(error: 'User not logged in'));
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || user.uid != ownerId) {
+        emit(UploadReelErrorState(error: 'Unauthorized'));
         return;
       }
 
-      final reelRef = FirebaseDatabase.instance
-          .ref()
-          .child('reels')
-          .child(uid)
-          .child(reelId);
+      final userReelRef =
+          FirebaseDatabase.instance.ref('userReels/$ownerId/$reelId');
 
-      final snapshot = await reelRef.get();
+      final snapshot = await userReelRef.get();
       if (!snapshot.exists) {
         emit( UploadReelErrorState(error: 'Reel not found'));
         return;
       }
 
-      final data = snapshot.value as Map;
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
       final videoUrl = data['videoUrl'];
 
       if (videoUrl != null) {
-        final storageRef =
-            FirebaseStorage.instance.refFromURL(videoUrl);
-        await storageRef.delete();
+        await FirebaseStorage.instance.refFromURL(videoUrl).delete();
       }
 
-      await reelRef.remove();
+      await Future.wait([
+        FirebaseDatabase.instance.ref('userReels/$ownerId/$reelId').remove(),
+        FirebaseDatabase.instance.ref('reelsFeed/$reelId').remove(),
+      ]);
 
       emit(UploadReelSuccessState());
     } catch (e) {
