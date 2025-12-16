@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_reel_cubit/upload_reel_cubit.dart';
 import 'package:video_player/video_player.dart';
 
 import 'package:myydoctor/data/posts/pic_post_model.dart';
@@ -327,6 +329,54 @@ class _ReelPlayerScreenState extends State<ReelPlayerScreen> {
     }
   }
 
+  /// 🔴 DELETE ACTION (HOOK)
+  void _onDeleteReel(String reelId, String ownerId) async {
+    _pauseVideo();
+
+    // OPTIONAL: confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Reel"),
+        content: const Text("Are you sure you want to delete this reel?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              context.read<UploadReelCubit>().deleteReel(reelId: reelId , ownerId: ownerId);
+              Navigator.pop(context, true);
+            },
+            child: const Text(
+              "Delete",
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final reel = widget.reels[currentIndex];
+
+      // 👉 DELETE FROM FIREBASE HERE
+      // Example:
+      // FirebaseDatabase.instance
+      //   .ref("reels/${reel.ownerId}/${reel.reelId}")
+      //   .remove();
+
+      showAppSnackBar(context, "Reel deleted");
+
+      Navigator.pop(context); // exit player after delete
+    } catch (e) {
+      showAppSnackBar(context, "Failed to delete reel");
+    }
+  }
+
   @override
   void dispose() {
     _pauseVideo();
@@ -369,16 +419,18 @@ class _ReelPlayerScreenState extends State<ReelPlayerScreen> {
 
           return Stack(
             children: [
+              /// VIDEO
               Center(
-                child:
-                    _controller != null && _controller!.value.isInitialized
-                        ? AspectRatio(
-                          aspectRatio: _controller!.value.aspectRatio,
-                          child: VideoPlayer(_controller!),
-                        )
-                        : const CircularProgressIndicator(color: Colors.white),
+                child: _controller != null &&
+                        _controller!.value.isInitialized
+                    ? AspectRatio(
+                        aspectRatio: _controller!.value.aspectRatio,
+                        child: VideoPlayer(_controller!),
+                      )
+                    : const CircularProgressIndicator(color: Colors.white),
               ),
 
+              /// BACK BUTTON
               Positioned(
                 top: 40,
                 left: 16,
@@ -391,6 +443,30 @@ class _ReelPlayerScreenState extends State<ReelPlayerScreen> {
                 ),
               ),
 
+              /// MENU (TOP RIGHT)
+              Positioned(
+                top: 40,
+                right: 16,
+                child: PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      _onDeleteReel(reel.reelId, reel.ownerId);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        "Delete",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              /// CAPTION
               Positioned(
                 bottom: 40,
                 left: 16,
