@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/home/homescreen.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 
 
@@ -209,7 +211,7 @@ class _ReconfirmRegistrationScreenState extends State<ReconfirmRegistrationScree
                           }
                           SaveProfilePreferenceCubit.doctorRegistrationNumber = widget.registerNumber;
                           showAppSnackBar(context, 'Registration number confirmed successfully');
-                          // Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Homescreen(),), (route) => false,);
+                          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => ProfileScreen(),), (route) => false,);
                         },
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
