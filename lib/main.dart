@@ -9,7 +9,8 @@ import 'package:myydoctor/presentation/screens/profile/profile_details_creation/
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_pic_cubit/upload_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_reel_cubit/upload_reel_cubit.dart';
-import 'package:myydoctor/presentation/screens/reels/bloc/cubit/reel_feed_cubit.dart';
+import 'package:myydoctor/presentation/screens/reels/bloc/reel_comment_cubit/reel_comment_cubit.dart';
+import 'package:myydoctor/presentation/screens/reels/bloc/reel_feed_cubit/reel_feed_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +28,7 @@ void main() async {
         BlocProvider(create: (_) => UploadPicCubit()),
         BlocProvider(create: (_) => UploadReelCubit()),
         BlocProvider(create: (_) => ReelFeedCubit()),
+        BlocProvider(create: (_) => ReelCommentCubit()),
       ],
       child: const MyApp(),
     ),

@@ -104,46 +104,51 @@ class UploadReelCubit extends Cubit<UploadReelState> {
     }
   }
 
-  Future<void> deleteReel({
-    required String reelId,
-    required String ownerId,
-  }) async {
-    emit(UploadReelLoadingState());
+ Future<void> deleteReel({
+  required String reelId,
+  required String ownerId,
+}) async {
+  emit(UploadReelLoadingState());
 
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null || user.uid != ownerId) {
-        emit(UploadReelErrorState(error: 'Unauthorized'));
-        return;
-      }
-
-      final userReelRef = FirebaseDatabase.instance.ref(
-        'userReels/$ownerId/$reelId',
-      );
-
-      final snapshot = await userReelRef.get();
-      if (!snapshot.exists) {
-        emit(UploadReelErrorState(error: 'Reel not found'));
-        return;
-      }
-
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
-      final videoUrl = data['videoUrl'];
-
-      if (videoUrl != null) {
-        await FirebaseStorage.instance.refFromURL(videoUrl).delete();
-      }
-
-      await Future.wait([
-        FirebaseDatabase.instance.ref('userReels/$ownerId/$reelId').remove(),
-        FirebaseDatabase.instance.ref('reelsFeed/$reelId').remove(),
-      ]);
-
-      emit(UploadReelSuccessState());
-    } catch (e) {
-      emit(UploadReelErrorState(error: e.toString()));
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.uid != ownerId) {
+      emit(UploadReelErrorState(error: 'Unauthorized'));
+      return;
     }
+
+    final userReelRef =
+        FirebaseDatabase.instance.ref('userReels/$ownerId/$reelId');
+
+    final snapshot = await userReelRef.get();
+    if (!snapshot.exists) {
+      emit(UploadReelErrorState(error: 'Reel not found'));
+      return;
+    }
+
+    final data = Map<String, dynamic>.from(snapshot.value as Map);
+    final videoUrl = data['videoUrl'];
+
+    /// 🧹 DELETE VIDEO FROM STORAGE
+    if (videoUrl != null && videoUrl.toString().isNotEmpty) {
+      await FirebaseStorage.instance.refFromURL(videoUrl).delete();
+    }
+
+    /// 🔥 ATOMIC MULTI-LOCATION DELETE
+    final Map<String, Object?> updates = {
+      'userReels/$ownerId/$reelId': null,
+      'reelsFeed/$reelId': null,
+      'reelComments/$reelId': null, // ✅ FIX: delete all comments
+    };
+
+    await FirebaseDatabase.instance.ref().update(updates);
+
+    emit(UploadReelSuccessState());
+  } catch (e) {
+    emit(UploadReelErrorState(error: e.toString()));
   }
+}
+
 
   @override
   Future<void> close() {

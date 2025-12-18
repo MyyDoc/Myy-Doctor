@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:myydoctor/presentation/screens/notifications/notification_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
-import 'package:myydoctor/presentation/screens/reels/bloc/cubit/reel_feed_cubit.dart';
+import 'package:myydoctor/presentation/screens/reels/bloc/reel_feed_cubit/reel_feed_cubit.dart';
 import 'package:myydoctor/presentation/screens/reels/reels_contents.dart';
 import 'package:myydoctor/presentation/screens/search/search_screen.dart';
 import 'package:myydoctor/presentation/widgets/common_widgets.dart';
