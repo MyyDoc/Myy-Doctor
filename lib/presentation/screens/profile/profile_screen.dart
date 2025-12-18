@@ -33,7 +33,6 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context); // ThemeData
     final textTheme = Theme.of(context).textTheme; // TextTheme
     return Scaffold(
       appBar: AppBar(

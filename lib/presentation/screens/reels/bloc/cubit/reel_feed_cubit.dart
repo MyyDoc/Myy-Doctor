@@ -75,7 +75,7 @@ class ReelFeedCubit extends Cubit<ReelFeedState> {
       return;
     }
 
-    final entries = (raw as Map)
+    final entries = (raw)
         .entries
         .map((e) => MapEntry(e.key.toString(), e.value))
         .toList();
