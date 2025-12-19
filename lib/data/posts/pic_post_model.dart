@@ -23,6 +23,7 @@ class PicPostModel {
 
 factory PicPostModel.fromMap(Map<dynamic, dynamic> map, {String? id}) {
   return PicPostModel(
+    name: map['fullName'] ?? 'no firebasename',
     postId: id ?? map['postId'] ?? '',
     ownerId: map['ownerId'] ?? '',
     caption: map['caption'] ?? '',
