@@ -120,16 +120,16 @@ class FirebaseService {
     }
   }
 
-  /// Create a reel
-  Future<void> createReel(ReelModel reel) async {
-    try {
-      await reelsCollection.doc(reel.reelId).set(reel.toJson());
-      print('✅ Reel created successfully');
-    } catch (e) {
-      print('❌ Error creating reel: $e');
-      rethrow;
-    }
-  }
+  // /// Create a reel
+  // Future<void> createReel(ReelModel reel) async {
+  //   try {
+  //     await reelsCollection.doc(reel.reelId).set(reel.toJson());
+  //     print('✅ Reel created successfully');
+  //   } catch (e) {
+  //     print('❌ Error creating reel: $e');
+  //     rethrow;
+  //   }
+  // }
 
   /// Send a message
   Future<void> sendMessage(MessageModel message) async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
+import 'package:myydoctor/repository/pic_post_repository.dart';
 
 class SavedFeedsDetailedScreen extends StatefulWidget {
   const SavedFeedsDetailedScreen({super.key});
@@ -41,13 +42,22 @@ class _SavedFeedsDetailedScreenState extends State<SavedFeedsDetailedScreen> {
               ],
             ),
           ),
-          child: ListView.separated(
-            physics: NeverScrollableScrollPhysics(),
-            shrinkWrap: true,
-            itemCount: 10,
-            separatorBuilder: (context, index) => const SizedBox(height: 30),
-            itemBuilder:
-                (context, index) => FeedContainerItem(textTheme: textTheme),
+          child: StreamBuilder(
+            stream: PicPostRepository().getPostsStream(useOwnerProfile: false),
+            builder: (context, asyncSnapshot) {
+              if(!asyncSnapshot.hasData){
+                return Center(child: CircularProgressIndicator(),);
+              }
+              final posts = asyncSnapshot.data!;
+              return ListView.separated(
+                physics: NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                itemCount: posts.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 30),
+                itemBuilder:
+                    (context, index) => FeedContainerItem(textTheme: textTheme,personName: posts[index].name,postImageUrl: posts[index].imageUrl,profileImageUrl: posts[index].profileImageUrl,postId: posts[index].postId,),
+              );
+            }
           ),
         ),
       ),

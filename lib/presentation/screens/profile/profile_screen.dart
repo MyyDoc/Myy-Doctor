@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
-import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
+import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/reel_post_uploding.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
+import 'package:myydoctor/presentation/widgets/profile/global_post_feed.dart';
 import 'package:myydoctor/presentation/widgets/profile/goto_payment_container.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
 import 'package:myydoctor/presentation/widgets/profile/vip.dart';
@@ -31,7 +33,6 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context); // ThemeData
     final textTheme = Theme.of(context).textTheme; // TextTheme
     return Scaffold(
       appBar: AppBar(
@@ -48,10 +49,26 @@ class _ProfileScreenState extends State<ProfileScreen>
             Icon(Icons.arrow_drop_down, color: Color(0xFFD4AF37)),
           ],
         ),
-        leading: Icon(Icons.lock_person_rounded, color: Colors.amber),
+        leading: GestureDetector(onTap: ()async{
+         await FirebaseAuth.instance.signOut();
+        }, child: Icon(Icons.lock_person_rounded, color: Colors.amber)),
         automaticallyImplyLeading: false,
         actions: [
-          Icon(Icons.add_box_outlined, color: Color(0xFFD4AF37), size: 30),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReelPostUplodingScreen(),
+                ),
+              );
+            },
+            child: Icon(
+              Icons.add_box_outlined,
+              color: Color(0xFFD4AF37),
+              size: 30,
+            ),
+          ),
           GestureDetector(
             onTap:
                 () => Navigator.push(
@@ -129,26 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF1F323C), // Top
-                    Color(0xFF000000), // Bottom
-                  ],
-                ),
-              ),
-              child: ListView.separated(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                itemCount: 10,
-                separatorBuilder:
-                    (context, index) => const SizedBox(height: 30),
-                itemBuilder:
-                    (context, index) => FeedContainerItem(textTheme: textTheme),
-              ),
-            ),
+            GlobalPostFeed(),
 
             Column(
               children: [
