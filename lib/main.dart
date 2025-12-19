@@ -30,7 +30,6 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      showPerformanceOverlay: true,
       builder: (context, child) {
         return SafeArea(top: false, child: child ?? const SizedBox());
       },
