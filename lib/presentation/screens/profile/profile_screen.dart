@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/data/user/user_model.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
 import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
-import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
 import 'package:myydoctor/presentation/widgets/profile/goto_payment_container.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
 import 'package:myydoctor/presentation/widgets/profile/vip.dart';
+import 'package:myydoctor/services/bloc/profile_bloc.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,10 +19,14 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+
+    // Load profile and start listening to updates
+    context.read<ProfileBloc>().add(ProfileUpdates());
   }
 
   @override
@@ -31,142 +37,144 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context); // ThemeData
-    final textTheme = Theme.of(context).textTheme; // TextTheme
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Color(0xFF1F323C),
-        title: Row(
-          children: [
-            Text(
-              "Antony Maxwell",
-              style: textTheme.titleLarge!.copyWith(
-                color: Color(0xFFD4AF37),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Icon(Icons.arrow_drop_down, color: Color(0xFFD4AF37)),
-          ],
-        ),
-        leading: Icon(Icons.lock_person_rounded, color: Colors.amber),
-        automaticallyImplyLeading: false,
-        actions: [
-          Icon(Icons.add_box_outlined, color: Color(0xFFD4AF37), size: 30),
-          GestureDetector(
-            onTap:
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ChatListScreen()),
-                ),
-            child: Padding(
-              padding: const EdgeInsets.all(15.0),
-              child: Icon(
-                Icons.message_outlined,
-                color: Color(0xFFD4AF37),
-                size: 30,
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverToBoxAdapter(
-              child: Column(
+    final textTheme = Theme.of(context).textTheme;
+
+    return BlocBuilder<ProfileBloc, ProfileState>(
+      builder: (context, state) {
+        if (state is ProfileLoading) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        } else if (state is ProfileError) {
+          return Scaffold(
+            body: Center(child: Text(state.message)),
+          );
+        } else if (state is ProfileLoaded) {
+          final user = state.user;
+
+          return Scaffold(
+            appBar: AppBar(
+              backgroundColor: const Color(0xFF1F323C),
+              title: Row(
                 children: [
-                  // Profile details section
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [Color(0xFFFFFFFF), Color(0xFFCDE4EA)],
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(15.0),
-                      child: profileDetailsMainContainer(textTheme, context),
+                  Text(
+                    user.fullName,
+                    style: textTheme.titleLarge!.copyWith(
+                      color: const Color(0xFFD4AF37),
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-
-                  // Tab bar
-                  Container(
-                    color: Color(0xFF1F323C),
-                    child: TabBar(
-                      controller: _tabController,
-                      labelColor: Colors.black,
-                      tabs: [
-                        Tab(
-                          child: Icon(
-                            Icons.grid_view_rounded,
-                            color: Color(0xFFD4AF37),
-                            size: 32,
+                  const Icon(Icons.arrow_drop_down, color: Color(0xFFD4AF37)),
+                ],
+              ),
+              leading: const Icon(Icons.lock_person_rounded, color: Colors.amber),
+              automaticallyImplyLeading: false,
+              actions: [
+                const Icon(Icons.add_box_outlined, color: Color(0xFFD4AF37), size: 30),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ChatListScreen()),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(15.0),
+                    child: Icon(Icons.message_outlined, color: Color(0xFFD4AF37), size: 30),
+                  ),
+                ),
+              ],
+            ),
+            body: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: [Color(0xFFFFFFFF), Color(0xFFCDE4EA)],
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(15.0),
+                            child: profileDetailsMainContainer(
+                              textTheme,
+                              context,
+                              user,
+                            ),
                           ),
                         ),
-                        Tab(
-                          child: Icon(
-                            Icons.list_rounded,
-                            color: Color(0xFFD4AF37),
-                            size: 40,
-                          ),
-                        ),
-                        Tab(
-                          child: Icon(
-                            Icons.bookmark,
-                            color: Color(0xFFD4AF37),
-                            size: 32,
+                        Container(
+                          color: const Color(0xFF1F323C),
+                          child: TabBar(
+                            controller: _tabController,
+                            tabs: const [
+                              Tab(
+                                icon: Icon(Icons.grid_view_rounded, color: Color(0xFFD4AF37), size: 32),
+                              ),
+                              Tab(
+                                icon: Icon(Icons.list_rounded, color: Color(0xFFD4AF37), size: 40),
+                              ),
+                              Tab(
+                                icon: Icon(Icons.bookmark, color: Color(0xFFD4AF37), size: 32),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
+                ];
+              },
+              body: TabBarView(
+                controller: _tabController,
+                children: [
+                  // Posts Tab
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFF1F323C), Color(0xFF000000)],
+                      ),
+                    ),
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      itemCount: 10,
+                      separatorBuilder: (_, __) => const SizedBox(height: 30),
+                      itemBuilder: (_, __) => FeedContainerItem(textTheme: textTheme),
+                    ),
+                  ),
+
+                  // VIP/Payment Tab
+                  Column(
+                    children: [
+                      PaymentPosterContainer(textTheme: textTheme),
+                      const Expanded(child: VipPrivilages()),
+                    ],
+                  ),
+
+                  // Saved Contents Tab
+                  const SavedContents(),
                 ],
               ),
             ),
-          ];
-        },
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF1F323C), // Top
-                    Color(0xFF000000), // Bottom
-                  ],
-                ),
-              ),
-              child: ListView.separated(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                itemCount: 10,
-                separatorBuilder:
-                    (context, index) => const SizedBox(height: 30),
-                itemBuilder:
-                    (context, index) => FeedContainerItem(textTheme: textTheme),
-              ),
-            ),
-
-            Column(
-              children: [
-                PaymentPosterContainer(textTheme: textTheme),
-                Expanded(child: VipPrivilages()),
-              ],
-            ),
-
-            SavedContents(),
-          ],
-        ),
-      ),
+          );
+        } else {
+          return const SizedBox.shrink();
+        }
+      },
     );
   }
+
+  /// ================= PROFILE DETAILS =================
 
   Column profileDetailsMainContainer(
     TextTheme textTheme,
     BuildContext context,
+    UserModel user,
   ) {
     return Column(
       children: [
@@ -174,9 +182,12 @@ class _ProfileScreenState extends State<ProfileScreen>
           children: [
             CircleAvatar(
               radius: 50,
-              backgroundImage: NetworkImage(
-                "https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc",
-              ),
+              backgroundImage: user.profilePicture != null
+                  ? NetworkImage(user.profilePicture!)
+                  : null,
+              child: user.profilePicture == null
+                  ? const Icon(Icons.person, size: 50)
+                  : null,
             ),
             const SizedBox(width: 15),
             Expanded(
@@ -198,11 +209,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       const SizedBox(width: 10),
                       Expanded(child: customContainerWidget("Subscriber Chat")),
                       const SizedBox(width: 15),
-                      Icon(
-                        Icons.person_add_alt,
-                        color: Color(0xFFD4AF37),
-                        size: 29,
-                      ),
+                      const Icon(Icons.person_add_alt, color: Color(0xFFD4AF37), size: 29),
                     ],
                   ),
                 ],
@@ -216,72 +223,20 @@ class _ProfileScreenState extends State<ProfileScreen>
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      "Dr. Antony Max",
-                      style: textTheme.titleLarge!.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(
-                      height: 30,
-                      width: 40,
-                      child: Image.asset(
-                        "assets/images/8ad19fdbc58af4bd5b0a3f9441f03fe5c09755ca.png",
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ],
-                ),
-                Text("@antonymax"),
-                Text(
-                  "Developer of myydoc",
-                  style: textTheme.bodyLarge!.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text(user.fullName, style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold)),
+                Text("@${user.username}"),
+                Text(user.bio ?? "", style: textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.bold)),
               ],
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: GestureDetector(
-                onTap:
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatScreen(isFromTeleMed: true),
-                      ),
-                    ),
-                child: customContainerWidget("Tele Medicine"),
+            const Spacer(),
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ChatScreen(isFromTeleMed: true)),
               ),
-            ),
-            const SizedBox(width: 15),
-            Text("🪙", style: TextStyle(fontSize: 22)),
-            const SizedBox(width: 5),
-            Text(
-              "256",
-              style: textTheme.titleLarge!.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
+              child: customContainerWidget("Tele Medicine"),
             ),
           ],
-        ),
-        const SizedBox(height: 15),
-        SizedBox(
-          height: 100,
-          child: ListView.separated(
-            separatorBuilder: (context, index) => const SizedBox(width: 10),
-            scrollDirection: Axis.horizontal,
-            itemBuilder:
-                (context, index) => StoryCircleItem(
-                  isFromProfile: true,
-                  textTheme: textTheme,
-                  index: index,
-                ),
-            itemCount: 10,
-          ),
         ),
       ],
     );
@@ -289,16 +244,9 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Column profileDetailsCounts(TextTheme textTheme, String count, String label) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          count,
-          style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
-        ),
-        Text(
-          label,
-          style: textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold),
-        ),
+        Text(count, style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold)),
+        Text(label, style: textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -309,12 +257,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       height: 30,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: Color(0xFF1F323C),
+        color: const Color(0xFF1F323C),
       ),
-      child: Text(
-        text,
-        style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold),
-      ),
+      child: Text(text, style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
     );
   }
 }
