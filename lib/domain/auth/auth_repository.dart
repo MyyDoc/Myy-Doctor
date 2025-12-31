@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+//import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
 
@@ -277,10 +277,10 @@ class AuthService {
     }
   }
 
-  // ==================== APPLE SIGN IN ====================
+  /*==================== APPLE SIGN IN ====================
   Future<Map<String, dynamic>> signInWithApple() async {
     try {
-      // Check if Apple Sign In is available
+      / Check if Apple Sign In is available
       if (!await SignInWithApple.isAvailable()) {
         return {
           'success': false,
@@ -359,7 +359,7 @@ class AuthService {
         'message': 'Apple sign in error: ${e.toString()}',
       };
     }
-  }
+  }*/
 
   // ==================== SIGN OUT ====================
   Future<Map<String, dynamic>> signOut() async {
