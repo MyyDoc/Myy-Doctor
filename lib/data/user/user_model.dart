@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // ==================== USER MODEL ====================
 class UserModel {
@@ -126,8 +127,12 @@ class UserModel {
       bio: json['bio'],
       gender: json['gender'],
       dob: json['dob'] != null ? DateTime.parse(json['dob']) : null,
-      lastLogin: json['lastLogin'] != null ? DateTime.parse(json['lastLogin']) : null,
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      lastLogin:
+          json['lastLogin'] != null ? DateTime.parse(json['lastLogin']) : null,
+      createdAt:
+          json['createdAt'] != null
+              ? DateTime.parse(json['createdAt'])
+              : DateTime.now(),
       isVerified: json['isVerified'] ?? false,
       emailVerified: json['emailVerified'] ?? false,
       phoneVerified: json['phoneVerified'] ?? false,
@@ -144,7 +149,8 @@ class UserModel {
       followingList: List<String>.from(json['followingList'] ?? []),
       subscribers: List<String>.from(json['subscribers'] ?? []),
       chatUsers: List<String>.from(json['chatUsers'] ?? []),
-      lastSeen: json['lastSeen'] != null ? DateTime.parse(json['lastSeen']) : null,
+      lastSeen:
+          json['lastSeen'] != null ? DateTime.parse(json['lastSeen']) : null,
       features: List<String>.from(json['features'] ?? []),
       privacy: json['privacy'] ?? 'public',
       themePreference: json['themePreference'] ?? 'light',
@@ -268,7 +274,10 @@ class PaymentModel {
       amount: (json['amount'] ?? 0.0).toDouble(),
       transactionType: json['transactionType'] ?? 'credit',
       transactionStatus: json['transactionStatus'] ?? 'pending',
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      createdAt:
+          json['createdAt'] != null
+              ? DateTime.parse(json['createdAt'])
+              : DateTime.now(),
       subscriptionStatus: json['subscriptionStatus'],
       description: json['description'],
     );

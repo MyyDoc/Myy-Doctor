@@ -4,6 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
 import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 
+<<<<<<< HEAD
+=======
+import 'package:myydoctor/presentation/screens/home/homescreen.dart';
+import 'package:myydoctor/presentation/screens/home/homescreen_body.dart';
+import 'package:myydoctor/presentation/widgets/profile/vip.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+>>>>>>> maxwell_dev
 class ReconfirmRegistrationScreen extends StatefulWidget {
   final String registerNumber;
   final String cityCode;
@@ -130,7 +138,73 @@ class _ReconfirmRegistrationScreenState
                       ],
                     ),
                     SizedBox(height: screenHeight * 0.15),
+<<<<<<< HEAD
                     _confirmButton(),
+=======
+
+                    // Reconfirm Button
+                    Container(
+                      width: 360,
+                      height: 53,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                            color: const Color(0xFFE6BA63), width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(255),
+                            offset: const Offset(0, 4),
+                            blurRadius: 20,
+                          ),
+                        ],
+                        gradient: const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            Color(0xFF000000),
+                            Color(0xFF51839D),
+                          ],
+                          stops: [0.0217, 0.4848],
+                        ),
+                      ),
+                      child: TextButton(
+                        onPressed: () {
+                          if(reregisterNumberController.text != widget.registerNumber){
+                            showAppSnackBar(context, 'registoration number dees not match, please re-enter');
+                            return;
+                          }
+                          SaveProfilePreferenceCubit.doctorRegistrationNumber = widget.registerNumber;
+                          showAppSnackBar(context, 'Registration number confirmed successfully');
+                          // Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Homescreen(),), (route) => false,);
+                        // onPressed: () async{
+                        //   SharedPreferences prefs = await SharedPreferences.getInstance();
+                        //   await prefs.setBool('isLoggedIn', true);
+                        //   Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Homescreen(),), (route) => false,);
+                        },
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            "Reconfirm Registration Number",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 24,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+
+
+
+                      
+                    ),
+>>>>>>> maxwell_dev
                   ],
                 ),
               ),

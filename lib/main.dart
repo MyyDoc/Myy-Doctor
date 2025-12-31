@@ -6,6 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:myydoctor/domain/profile/profile_repository.dart';
 import 'package:myydoctor/firebase_options.dart';
 import 'package:myydoctor/presentation/screens/auth/splash_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_age/save_age_bloc.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_pic/save_profile_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
 import 'package:myydoctor/services/bloc/profile_bloc.dart';
 
@@ -19,12 +22,9 @@ void main() async {
   runApp(
     MultiBlocProvider(
       providers: [
-        BlocProvider<ProfileBloc>(
-          create: (_) => ProfileBloc(ProfileRepository()),
-        ),
-        BlocProvider<SaveProfilePreferenceCubit>(
-          create: (_) => SaveProfilePreferenceCubit(),
-        ),
+        BlocProvider(create: (_) => SaveProfilePreferenceCubit()),
+        BlocProvider(create: (_) => SaveAgeBloc()),
+        BlocProvider(create: (_) => SaveProfilePicCubit()),
       ],
       child: const MyApp(),
     ),
