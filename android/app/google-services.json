@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "798205149245",
+    "firebase_url": "https://myydoctor-cb5da-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "myydoctor-cb5da",
+    "storage_bucket": "myydoctor-cb5da.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:798205149245:android:7575afde6af4eb970b2a54",
+        "android_client_info": {
+          "package_name": "com.example.myydoctor"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "798205149245-1ufu0kj4r9clt0os5g0qa3ov41uq1kjk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkVhEgRE5qX8o_T5prxp8O5KSIeyRpE4M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "798205149245-1ufu0kj4r9clt0os5g0qa3ov41uq1kjk.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "798205149245-9d72oo35t83rnkt25qaegtmomeo192oj.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.myydoctor.myydoctorGB"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
