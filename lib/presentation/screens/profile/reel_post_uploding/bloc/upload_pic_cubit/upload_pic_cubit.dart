@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:bloc/bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -19,21 +20,33 @@ class UploadPicCubit extends Cubit<UploadPicState> {
     try {
       final uid = user?.uid;
       if (uid == null) {
-        print('user not logged in');
         emit(UploadPicErrorState(error: 'User not logged in'));
         return;
       }
+
+      // 1️⃣ Fetch user profile from Firestore
+      final userDoc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+      if (!userDoc.exists) {
+        emit(UploadPicErrorState(error: 'User profile not found'));
+        return;
+      }
+
+      final userData = userDoc.data()!;
+
       final file = File(picPath);
 
-      final postRef = FirebaseDatabase.instance.ref().child('posts').child(uid);
-      final newPostRef = postRef.push();
-      final postId = newPostRef.key;
+      // 2️⃣ Create post ID
+      final postRef = FirebaseDatabase.instance.ref('posts/$uid').push();
+      final postId = postRef.key;
 
       if (postId == null) {
         emit(UploadPicErrorState(error: 'Failed to generate post ID'));
         return;
       }
 
+      // 3️⃣ Upload image
       final storageRef = FirebaseStorage.instance
           .ref()
           .child('posts')
@@ -43,66 +56,70 @@ class UploadPicCubit extends Cubit<UploadPicState> {
       final uploadTask = await storageRef.putFile(file);
       final downloadUrl = await uploadTask.ref.getDownloadURL();
 
+      // 4️⃣ Save post WITH user data
       final postData = {
         'postId': postId,
         'ownerId': uid,
+        'fullName': userData['fullName'] ?? '',
+        'profileImageUrl': userData['profilePicture'] ?? '',
         'imageUrl': downloadUrl,
         'caption': caption,
         'createdAt': ServerValue.timestamp,
         'likeCount': 0,
         'commentCount': 0,
-        'likes': {}, // empty map for future likes
-        'comments': {}, // empty map for future comments
       };
 
-      await newPostRef.set(postData);
+      await postRef.set(postData);
+
       emit(UploadPicSuccessState());
     } catch (e) {
       emit(UploadPicErrorState(error: e.toString()));
-      print(e);
     }
   }
 
-  deletePost({required String postId}) async {
-  final user = FirebaseAuth.instance.currentUser;
+  Future<void> deletePost({required String postId}) async {
+    final user = FirebaseAuth.instance.currentUser;
 
-  emit(UploadLoadingState());
+    emit(UploadLoadingState());
 
-  try {
-    final uid = user?.uid;
-    if (uid == null) {
-      emit(UploadPicErrorState(error: 'User not logged in'));
-      return;
+    try {
+      final uid = user?.uid;
+      if (uid == null) {
+        emit(UploadPicErrorState(error: 'User not logged in'));
+        return;
+      }
+
+      final db = FirebaseDatabase.instance.ref();
+
+      final postRef = db.child('posts').child(uid).child(postId);
+
+      // 1️⃣ Fetch post to get imageUrl
+      final snapshot = await postRef.get();
+      if (!snapshot.exists) {
+        emit(UploadPicErrorState(error: 'Post not found'));
+        return;
+      }
+
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final imageUrl = data['imageUrl'];
+
+      // 2️⃣ Delete image from Firebase Storage
+      if (imageUrl != null && imageUrl is String && imageUrl.isNotEmpty) {
+        final storageRef = FirebaseStorage.instance.refFromURL(imageUrl);
+        await storageRef.delete();
+      }
+
+      // 3️⃣ Atomic delete: post + comments
+      final updates = <String, dynamic>{
+        'posts/$uid/$postId': null,
+        'postComments/$postId': null,
+      };
+
+      await db.update(updates);
+
+      emit(UploadPicSuccessState());
+    } catch (e) {
+      emit(UploadPicErrorState(error: e.toString()));
     }
-
-    final postRef = FirebaseDatabase.instance.ref()
-        .child('posts')
-        .child(uid)
-        .child(postId);
-
-    // 1. Fetch the post to get imageUrl
-    final snapshot = await postRef.get();
-    if (!snapshot.exists) {
-      emit(UploadPicErrorState(error: 'Post not found'));
-      return;
-    }
-
-    final data = snapshot.value as Map;
-    final imageUrl = data['imageUrl'];
-
-    // 2. Delete image from Firebase Storage
-    if (imageUrl != null) {
-      final storageRef = FirebaseStorage.instance.refFromURL(imageUrl);
-      await storageRef.delete();
-    }
-
-    // 3. Delete post data from Realtime Database
-    await postRef.remove();
-
-    emit(UploadPicSuccessState());
-  } catch (e) {
-    emit(UploadPicErrorState(error: e.toString()));
   }
-}
-
 }
