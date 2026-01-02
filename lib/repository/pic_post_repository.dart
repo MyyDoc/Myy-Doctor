@@ -4,58 +4,99 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:myydoctor/data/posts/pic_post_model.dart';
 
 class PicPostRepository {
-
+  /// Streams all posts (global feed) or only user's posts (profile)
   Stream<List<PicPostModel>> getPostsStream({required bool useOwnerProfile}) {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final ref = useOwnerProfile
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      return Stream.value([]);
+    }
+
+    final uid = currentUser.uid;
+
+    // Reference to posts
+    final DatabaseReference postsRef = useOwnerProfile
         ? FirebaseDatabase.instance.ref("posts")
         : FirebaseDatabase.instance.ref("posts/$uid");
 
-    return ref.onValue.map((event) {
-      final data = event.snapshot.value;
-      if (data == null || data is! Map) return [];
+    // Also listen to current user's saved posts once (efficient!)
+    final DatabaseReference savedRef =
+    FirebaseDatabase.instance.ref("savedPosts/$uid");
 
-      List<PicPostModel> posts = [];
+    // Combine both streams using RxDart or manual combine
+    return savedRef.onValue.asyncExpand((savedEvent) {
+      final Set<String> savedPostIds = {};
 
-      if (useOwnerProfile) {
-        final usersMap = Map<dynamic, dynamic>.from(data);
-
-        for (var userEntry in usersMap.entries) {
-          if (userEntry.value is! Map) continue;
-          final userPosts = Map<dynamic, dynamic>.from(userEntry.value);
-
-          for (var postEntry in userPosts.entries) {
-            if (postEntry.value is! Map) continue;
-
-            posts.add(
-              PicPostModel.fromMap(
-                Map<String, dynamic>.from(postEntry.value),
-                id: postEntry.key,
-              ),
-            );
-          }
-        }
-      } else {
-        final postsMap = Map<dynamic, dynamic>.from(data);
-
-        for (var entry in postsMap.entries) {
-          if (entry.value is! Map) continue;
-
-          posts.add(
-            PicPostModel.fromMap(
-              Map<String, dynamic>.from(entry.value),
-              id: entry.key,
-            ),
-          );
-        }
+      if (savedEvent.snapshot.value != null) {
+        final savedData = Map<dynamic, dynamic>.from(savedEvent.snapshot.value as Map);
+        savedPostIds.addAll(savedData.keys.map((key) => key.toString()));
       }
 
-      posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return posts;
+      return postsRef.onValue.map((event) {
+        final data = event.snapshot.value;
+        if (data == null || data is! Map) return <PicPostModel>[];
+
+        final List<PicPostModel> posts = [];
+
+        if (useOwnerProfile) {
+          // Global feed: iterate through all users
+          final usersMap = Map<dynamic, dynamic>.from(data);
+
+          for (var userEntry in usersMap.entries) {
+            final String ownerId = userEntry.key.toString();
+            if (userEntry.value is! Map) continue;
+
+            final userPostsMap = Map<dynamic, dynamic>.from(userEntry.value);
+
+            for (var postEntry in userPostsMap.entries) {
+              final String postId = postEntry.key.toString();
+              if (postEntry.value is! Map) continue;
+
+              final postMap = Map<String, dynamic>.from(postEntry.value as Map);
+
+              posts.add(PicPostModel(
+                postId: postId,
+                ownerId: ownerId,
+                caption: postMap['caption'] ?? '',
+                imageUrl: postMap['imageUrl'] ?? '',
+                likeCount: postMap['likeCount'] ?? 0,
+                commentCount: postMap['commentCount'] ?? 0,
+                name: postMap['name'] as String?,
+                profileImageUrl: postMap['profileImageUrl'] as String?,
+                createdAt: postMap['createdAt'] ?? 0,
+                isSaved: savedPostIds.contains(postId),
+              ));
+            }
+          }
+        } else {
+          // Profile feed: only current user's posts
+          final postsMap = Map<dynamic, dynamic>.from(data);
+
+          for (var entry in postsMap.entries) {
+            final String postId = entry.key.toString();
+            if (entry.value is! Map) continue;
+
+            final postMap = Map<String, dynamic>.from(entry.value as Map);
+
+            posts.add(PicPostModel(
+              postId: postId,
+              ownerId: uid,
+              caption: postMap['caption'] ?? '',
+              imageUrl: postMap['imageUrl'] ?? '',
+              likeCount: postMap['likeCount'] ?? 0,
+              commentCount: postMap['commentCount'] ?? 0,
+              name: postMap['name'] as String?,
+              profileImageUrl: postMap['profileImageUrl'] as String?,
+              createdAt: postMap['createdAt'] ?? 0,
+              isSaved: savedPostIds.contains(postId),
+            ));
+          }
+        }
+
+        // Sort by newest first
+        posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+        return posts;
+      });
     });
   }
 }
-
-
-
-

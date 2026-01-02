@@ -100,37 +100,6 @@ class FirebaseService {
     }
   }
 
-  /// Create a story
-  Future<void> createStory(StoryModel story) async {
-    try {
-      await storiesCollection.doc(story.storyId).set(story.toJson());
-
-      // Update user's story count
-      await updateUserField(
-        userId: story.userId,
-        updates: {
-          'storiesCount': FieldValue.increment(1),
-        },
-      );
-
-      print('✅ Story created successfully');
-    } catch (e) {
-      print('❌ Error creating story: $e');
-      rethrow;
-    }
-  }
-
-  // /// Create a reel
-  // Future<void> createReel(ReelModel reel) async {
-  //   try {
-  //     await reelsCollection.doc(reel.reelId).set(reel.toJson());
-  //     print('✅ Reel created successfully');
-  //   } catch (e) {
-  //     print('❌ Error creating reel: $e');
-  //     rethrow;
-  //   }
-  // }
-
   /// Send a message
   Future<void> sendMessage(MessageModel message) async {
     try {

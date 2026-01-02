@@ -1,9 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/data/user/story_model.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/reel_post_uploding.dart';
+import 'package:myydoctor/presentation/screens/profile/story_view/bloc/fetch_story_cubit/fetch_my_stories_cubit.dart';
+import 'package:myydoctor/presentation/screens/profile/story_view/watch_story_screen.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
+import 'package:myydoctor/presentation/widgets/profile/create_story_screen.dart';
 import 'package:myydoctor/presentation/widgets/profile/global_post_feed.dart';
 import 'package:myydoctor/presentation/widgets/profile/goto_payment_container.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
@@ -22,6 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
+    context.read<FetchMyStoriesCubit>().fetchMyStories();
     _tabController = TabController(length: 3, vsync: this);
   }
 
@@ -49,9 +55,12 @@ class _ProfileScreenState extends State<ProfileScreen>
             Icon(Icons.arrow_drop_down, color: Color(0xFFD4AF37)),
           ],
         ),
-        leading: GestureDetector(onTap: ()async{
-         await FirebaseAuth.instance.signOut();
-        }, child: Icon(Icons.lock_person_rounded, color: Colors.amber)),
+        leading: GestureDetector(
+          onTap: () async {
+            await FirebaseAuth.instance.signOut();
+          },
+          child: Icon(Icons.lock_person_rounded, color: Colors.amber),
+        ),
         automaticallyImplyLeading: false,
         actions: [
           GestureDetector(
@@ -267,19 +276,77 @@ class _ProfileScreenState extends State<ProfileScreen>
           ],
         ),
         const SizedBox(height: 15),
-        SizedBox(
-          height: 100,
-          child: ListView.separated(
-            separatorBuilder: (context, index) => const SizedBox(width: 10),
-            scrollDirection: Axis.horizontal,
-            itemBuilder:
-                (context, index) => StoryCircleItem(
-                  isFromProfile: true,
-                  textTheme: textTheme,
-                  index: index,
-                ),
-            itemCount: 10,
-          ),
+        BlocBuilder<FetchMyStoriesCubit, FetchMyStoriesState>(
+          builder: (context, state) {
+            // Show loading or initial state (optional shimmer)
+            if (state is FetchMyStoriesLoading || state is FetchMyStoriesInitial) {
+              return const SizedBox(height: 100); // or add Shimmer loader here
+            }
+
+            List<StoryModel> stories = [];
+            if (state is FetchMyStoriesSuccess) {
+              stories = state.stories;
+            }
+
+            final bool hasStories = stories.isNotEmpty;
+            final int itemCount = hasStories ? stories.length + 1 : 1; // +1 for "Add Story" circle
+
+            return SizedBox(
+              height: 100,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
+                itemCount: itemCount,
+                itemBuilder: (context, index) {
+                  // Index 0 is always the "Add Story" circle
+                  if (index == 0) {
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const StoryCreatorHome(),
+                          ),
+                        );
+                      },
+                      child: StoryCircleItem(
+                        isFromProfile: true,
+                        textTheme: textTheme,
+                        index: 0,
+                        isAddButton: true,
+                        imageUrl: null,
+                      ),
+                    );
+                  }
+
+                  // Other indices: actual stories (index - 1 because 0 is Add)
+                  final storyIndex = index - 1; // This is the real index in stories list
+                  final story = stories[storyIndex];
+
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MyStoryViewer(
+                            stories: stories,
+                            initialIndex: storyIndex,
+                          ),
+                        ),
+                      );
+                    },
+                    child: StoryCircleItem(
+                      isFromProfile: true,
+                      textTheme: textTheme,
+                      index: index,
+                      imageUrl: story.imageUrl,
+                      isAddButton: false,
+                    ),
+                  );
+                },
+              ),
+            );
+          },
         ),
       ],
     );

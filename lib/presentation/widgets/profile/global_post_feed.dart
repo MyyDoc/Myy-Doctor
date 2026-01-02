@@ -68,6 +68,9 @@ late final Stream<List<PicPostModel>> globalUserPostFeed;
                 postImageUrl: posts[index].imageUrl,
                 personName: posts[index].name,
                 profileImageUrl: posts[index].profileImageUrl,
+                isInitiallySaved: posts[index].isSaved,
+                ownerId: posts[index].ownerId,
+                postId: posts[index].postId,
               );
             },
           );

@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_pic_cubit/upload_pic_cubit.dart';
 
+import '../../screens/profile/reel_post_uploding/bloc/save_post_cubit/save_post_cubit.dart';
+
 class FeedContainerItem extends StatelessWidget {
   final String? postImageUrl;
   final String? personName;
   final String? profileImageUrl;
   final String? postId;
+  final String? ownerId;
+  final bool isInitiallySaved;
   const FeedContainerItem({
     super.key,
     required this.textTheme,
@@ -14,6 +18,8 @@ class FeedContainerItem extends StatelessWidget {
     this.personName,
     this.profileImageUrl,
     this.postId,
+    this.ownerId,
+    required this.isInitiallySaved
   });
 
   final TextTheme textTheme;
@@ -119,7 +125,32 @@ class FeedContainerItem extends StatelessWidget {
                     children: [
                       Icon(Icons.message_outlined, color: Colors.white),
                       Icon(Icons.send_rounded, color: Colors.white),
-                      Icon(Icons.bookmark_border_rounded, color: Colors.white),
+                      IconButton(
+                        icon: Icon(
+                          isInitiallySaved ? Icons.bookmark : Icons.bookmark_border,
+                          color: isInitiallySaved ? Colors.purple : Colors.white,
+                          size: 28,
+                        ),
+                        onPressed: () async {
+                          if (postId == null || ownerId == null) return;
+
+                          final cubit = context.read<SavePostCubit>();
+
+                          await cubit.toggleSave(
+                            postId: postId!,
+                            ownerId: ownerId!,
+                            isCurrentlySaved: isInitiallySaved,
+                          );
+
+                          // Optional: Show feedback
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(isInitiallySaved ? 'Post unsaved' : 'Post saved!'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),

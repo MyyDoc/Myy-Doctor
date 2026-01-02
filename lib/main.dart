@@ -7,8 +7,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_age/save_age_bloc.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_pic/save_profile_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
+import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/save_post_cubit/save_post_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_pic_cubit/upload_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_reel_cubit/upload_reel_cubit.dart';
+import 'package:myydoctor/presentation/screens/profile/story_view/bloc/fetch_story_cubit/fetch_my_stories_cubit.dart';
+import 'package:myydoctor/presentation/screens/profile/story_view/bloc/upload_story_cubit/upload_story_cubit.dart';
 import 'package:myydoctor/presentation/screens/reels/bloc/reel_comment_cubit/reel_comment_cubit.dart';
 import 'package:myydoctor/presentation/screens/reels/bloc/reel_feed_cubit/reel_feed_cubit.dart';
 
@@ -29,6 +32,9 @@ void main() async {
         BlocProvider(create: (_) => UploadReelCubit()),
         BlocProvider(create: (_) => ReelFeedCubit()),
         BlocProvider(create: (_) => ReelCommentCubit()),
+        BlocProvider(create: (_) => UploadStoryCubit()),
+        BlocProvider(create: (_) => FetchMyStoriesCubit()),
+        BlocProvider(create: (_) => SavePostCubit(),)
       ],
       child: const MyApp(),
     ),
