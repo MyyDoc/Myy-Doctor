@@ -95,77 +95,82 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ],
       ),
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  // Profile details section
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [Color(0xFFFFFFFF), Color(0xFFCDE4EA)],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await context.read<FetchMyStoriesCubit>().fetchMyStories();
+        },
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    // Profile details section
+                    Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Color(0xFFFFFFFF), Color(0xFFCDE4EA)],
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        child: profileDetailsMainContainer(textTheme, context),
                       ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(15.0),
-                      child: profileDetailsMainContainer(textTheme, context),
-                    ),
-                  ),
 
-                  // Tab bar
-                  Container(
-                    color: Color(0xFF1F323C),
-                    child: TabBar(
-                      controller: _tabController,
-                      labelColor: Colors.black,
-                      tabs: [
-                        Tab(
-                          child: Icon(
-                            Icons.grid_view_rounded,
-                            color: Color(0xFFD4AF37),
-                            size: 32,
+                    // Tab bar
+                    Container(
+                      color: Color(0xFF1F323C),
+                      child: TabBar(
+                        controller: _tabController,
+                        labelColor: Colors.black,
+                        tabs: [
+                          Tab(
+                            child: Icon(
+                              Icons.grid_view_rounded,
+                              color: Color(0xFFD4AF37),
+                              size: 32,
+                            ),
                           ),
-                        ),
-                        Tab(
-                          child: Icon(
-                            Icons.list_rounded,
-                            color: Color(0xFFD4AF37),
-                            size: 40,
+                          Tab(
+                            child: Icon(
+                              Icons.list_rounded,
+                              color: Color(0xFFD4AF37),
+                              size: 40,
+                            ),
                           ),
-                        ),
-                        Tab(
-                          child: Icon(
-                            Icons.bookmark,
-                            color: Color(0xFFD4AF37),
-                            size: 32,
+                          Tab(
+                            child: Icon(
+                              Icons.bookmark,
+                              color: Color(0xFFD4AF37),
+                              size: 32,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
+                ),
+              ),
+            ];
+          },
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              GlobalPostFeed(),
+
+              Column(
+                children: [
+                  PaymentPosterContainer(textTheme: textTheme),
+                  Expanded(child: VipPrivilages()),
                 ],
               ),
-            ),
-          ];
-        },
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            GlobalPostFeed(),
 
-            Column(
-              children: [
-                PaymentPosterContainer(textTheme: textTheme),
-                Expanded(child: VipPrivilages()),
-              ],
-            ),
-
-            SavedContents(),
-          ],
+              SavedContents(),
+            ],
+          ),
         ),
       ),
     );
@@ -257,7 +262,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ChatScreen(isFromTeleMed: true),
+                        builder: (context) => ChatScreen(isFromTeleMed: true, ),
                       ),
                     ),
                 child: customContainerWidget("Tele Medicine"),
@@ -278,7 +283,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         const SizedBox(height: 15),
         BlocBuilder<FetchMyStoriesCubit, FetchMyStoriesState>(
           builder: (context, state) {
-            // Show loading or initial state (optional shimmer)
             if (state is FetchMyStoriesLoading || state is FetchMyStoriesInitial) {
               return const SizedBox(height: 100); // or add Shimmer loader here
             }
@@ -301,13 +305,20 @@ class _ProfileScreenState extends State<ProfileScreen>
                   // Index 0 is always the "Add Story" circle
                   if (index == 0) {
                     return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async{
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => const StoryCreatorHome(),
                           ),
                         );
+
+                        print('Story creator returned: $result');
+
+                        if(result == "success"){
+                          print("trying again");
+                          context.read<FetchMyStoriesCubit>().fetchMyStories();
+                        }
                       },
                       child: StoryCircleItem(
                         isFromProfile: true,

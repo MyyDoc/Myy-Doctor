@@ -58,6 +58,7 @@ class UploadPicCubit extends Cubit<UploadPicState> {
 
       // 4️⃣ Save post WITH user data
       final postData = {
+        'username' : userData['username'],
         'postId': postId,
         'ownerId': uid,
         'fullName': userData['fullName'] ?? '',

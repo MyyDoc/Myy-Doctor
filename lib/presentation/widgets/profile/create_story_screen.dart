@@ -164,6 +164,8 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
                               backgroundColor: Colors.green,
                             ),
                           );
+
+                          Navigator.pop(context, "success");
                         } else if (cubit.state is UploadStoryError) {
                           final errorState = cubit.state as UploadStoryError;
                           ScaffoldMessenger.of(context).showSnackBar(

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_pic_cubit/upload_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/reels/bloc/post_comment_cubit/post_comment_cubit.dart';
 
@@ -13,6 +14,7 @@ class FeedContainerItem extends StatelessWidget {
   final String? postId;
   final String? ownerId;
   final bool isInitiallySaved;
+  final TextTheme textTheme;
   const FeedContainerItem({
     super.key,
     required this.textTheme,
@@ -21,7 +23,7 @@ class FeedContainerItem extends StatelessWidget {
     this.profileImageUrl,
     this.postId,
     this.ownerId,
-    required this.isInitiallySaved
+    required this.isInitiallySaved,
   });
 
   @override
@@ -35,36 +37,50 @@ class FeedContainerItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: Row(
               children: [
-                CircleAvatar(
-                  backgroundImage: NetworkImage(
-                    profileImageUrl ??
-                        "https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc",
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(),));
+                  },
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundImage: NetworkImage(
+                          profileImageUrl ??
+                              "https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc",
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        personName ?? "Unknown",
+                        style: textTheme.bodyLarge!.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                Text(
-                  personName ?? "Unknown",
-                  style: textTheme.bodyLarge!.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+
                 const Spacer(),
                 PopupMenuButton(
-                  icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                  icon: const Icon(
+                    Icons.more_vert_rounded,
+                    color: Colors.white,
+                  ),
                   onSelected: (value) {
                     if (value == 'delete' && postId != null) {
                       context.read<UploadPicCubit>().deletePost(
-                            postId: postId!,
-                          );
+                        postId: postId!,
+                      );
                     }
                   },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Delete Post'),
-                    ),
-                  ],
+                  itemBuilder:
+                      (context) => const [
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Delete Post'),
+                        ),
+                      ],
                 ),
               ],
             ),
@@ -107,10 +123,9 @@ class FeedContainerItem extends StatelessWidget {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          if (postId == null || postOwnerId == null) return;
+                          if (postId == null || ownerId == null) return;
 
-                          final cubit =
-                              context.read<PostCommentCubit>();
+                          final cubit = context.read<PostCommentCubit>();
 
                           cubit.fetchComments(postId!);
 
@@ -119,24 +134,30 @@ class FeedContainerItem extends StatelessWidget {
                             isScrollControlled: true,
                             backgroundColor: Colors.black,
                             shape: const RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.vertical(top: Radius.circular(16)),
-                            ),
-                            builder: (_) => BlocProvider.value(
-                              value: cubit,
-                              child: PostCommentBottomSheet(
-                                postId: postId!,
-                                postOwnerId: postOwnerId!,
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
                               ),
                             ),
+                            builder:
+                                (_) => BlocProvider.value(
+                                  value: cubit,
+                                  child: PostCommentBottomSheet(
+                                    postId: postId!,
+                                    ownerId: ownerId!,
+                                  ),
+                                ),
                           );
                         },
-                        child: const Icon(Icons.message_outlined,
-                            color: Colors.white),
+                        child: const Icon(
+                          Icons.message_outlined,
+                          color: Colors.white,
+                        ),
                       ),
                       const Icon(Icons.send_rounded, color: Colors.white),
-                      const Icon(Icons.bookmark_border_rounded,
-                          color: Colors.white),
+                      const Icon(
+                        Icons.bookmark_border_rounded,
+                        color: Colors.white,
+                      ),
                     ],
                   ),
                 ),
@@ -154,12 +175,12 @@ class FeedContainerItem extends StatelessWidget {
 /// ─────────────────────────────────────────────
 class PostCommentBottomSheet extends StatelessWidget {
   final String postId;
-  final String postOwnerId;
+  final String ownerId;
 
   const PostCommentBottomSheet({
     super.key,
     required this.postId,
-    required this.postOwnerId,
+    required this.ownerId,
   });
 
   @override
@@ -167,8 +188,9 @@ class PostCommentBottomSheet extends StatelessWidget {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
 
     return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.75,
         child: Column(
@@ -191,8 +213,10 @@ class PostCommentBottomSheet extends StatelessWidget {
                   if (state is PostCommentLoaded) {
                     if (state.comments.isEmpty) {
                       return const Center(
-                        child: Text("No comments yet",
-                            style: TextStyle(color: Colors.grey)),
+                        child: Text(
+                          "No comments yet",
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       );
                     }
 
@@ -204,8 +228,7 @@ class PostCommentBottomSheet extends StatelessWidget {
 
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundImage:
-                                NetworkImage(c.userProfilePicUrl),
+                            backgroundImage: NetworkImage(c.userProfilePicUrl),
                           ),
                           title: Row(
                             children: [
@@ -220,32 +243,35 @@ class PostCommentBottomSheet extends StatelessWidget {
                               ),
                               if (isOwner)
                                 PopupMenuButton(
-                                  icon: const Icon(Icons.more_vert,
-                                      color: Colors.white, size: 18),
+                                  icon: const Icon(
+                                    Icons.more_vert,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
                                   onSelected: (value) {
                                     if (value == 'delete') {
                                       context
                                           .read<PostCommentCubit>()
                                           .deleteComment(
                                             postId: postId,
-                                            postOwnerId: postOwnerId,
+                                            postOwnerId: ownerId,
                                             commentId: c.commentId,
                                           );
                                     }
                                   },
-                                  itemBuilder: (_) => const [
-                                    PopupMenuItem(
-                                      value: 'delete',
-                                      child: Text('Delete'),
-                                    ),
-                                  ],
+                                  itemBuilder:
+                                      (_) => const [
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text('Delete'),
+                                        ),
+                                      ],
                                 ),
                             ],
                           ),
                           subtitle: Text(
                             c.text,
-                            style:
-                                const TextStyle(color: Colors.white70),
+                            style: const TextStyle(color: Colors.white70),
                           ),
                         );
                       },
@@ -254,19 +280,19 @@ class PostCommentBottomSheet extends StatelessWidget {
 
                   if (state is PostCommentError) {
                     return Center(
-                      child: Text(state.message,
-                          style: const TextStyle(color: Colors.red)),
+                      child: Text(
+                        state.message,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     );
                   }
 
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 },
               ),
             ),
 
-            _CommentInput(postId: postId, postOwnerId: postOwnerId),
+            _CommentInput(postId: postId, ownerId: ownerId),
           ],
         ),
       ),
@@ -279,12 +305,9 @@ class PostCommentBottomSheet extends StatelessWidget {
 /// ─────────────────────────────────────────────
 class _CommentInput extends StatefulWidget {
   final String postId;
-  final String postOwnerId;
+  final String ownerId;
 
-  const _CommentInput({
-    required this.postId,
-    required this.postOwnerId,
-  });
+  const _CommentInput({required this.postId, required this.ownerId});
 
   @override
   State<_CommentInput> createState() => _CommentInputState();
@@ -321,10 +344,10 @@ class _CommentInputState extends State<_CommentInput> {
               if (controller.text.trim().isEmpty) return;
 
               context.read<PostCommentCubit>().postComment(
-                    postId: widget.postId,
-                    postOwnerId: widget.postOwnerId,
-                    text: controller.text,
-                  );
+                postId: widget.postId,
+                postOwnerId: widget.ownerId,
+                text: controller.text,
+              );
 
               controller.clear();
             },

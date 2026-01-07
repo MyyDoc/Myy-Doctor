@@ -32,7 +32,7 @@ class PicPostModel {
       imageUrl: map['imageUrl'] ?? '',
       likeCount: map['likeCount'] ?? 0,
       commentCount: map['commentCount'] ?? 0,
-      name: map['name'] as String?,                    // Can come from post data
+      name: map['username'] as String?,                    // Can come from post data
       profileImageUrl: map['profileImageUrl'] as String?,
       createdAt: map['createdAt'] ?? 0,
       isSaved: false, // Will be overridden later by repository

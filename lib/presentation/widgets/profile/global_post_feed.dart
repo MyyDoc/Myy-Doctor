@@ -64,9 +64,10 @@ class _GlobalPostFeedState extends State<GlobalPostFeed>
               return BlocProvider(
                 create: (context) => PostCommentCubit(),
                 child: FeedContainerItem(
+                  isInitiallySaved: false,
                   textTheme: textTheme,
                   postId: posts[index].postId,
-                  postOwnerId: posts[index].ownerId,
+                  ownerId: posts[index].ownerId,
                   postImageUrl: posts[index].imageUrl,
                   personName: posts[index].name ?? 'no name here',
                   profileImageUrl: posts[index].profileImageUrl,

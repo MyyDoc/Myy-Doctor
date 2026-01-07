@@ -11,6 +11,12 @@ part 'fetch_my_stories_state.dart';
 class FetchMyStoriesCubit extends Cubit<FetchMyStoriesState> {
   FetchMyStoriesCubit() : super(FetchMyStoriesInitial());
 
+  @override
+  void onChange(Change<FetchMyStoriesState> change) {
+    super.onChange(change);
+    print('Stories State Change: ${change.currentState} → ${change.nextState}');
+  }
+
   Future<void> fetchMyStories() async {
     emit(FetchMyStoriesLoading());
 
