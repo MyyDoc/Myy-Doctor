@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
+import 'package:myydoctor/presentation/widgets/colours.dart';
 import 'package:myydoctor/presentation/widgets/search/dropdown.dart';
 import 'package:myydoctor/services/doctors_list.dart';
 import 'package:myydoctor/services/location/doctors_location.dart';
@@ -207,13 +208,66 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
       ),
-      body: SizedBox(
-        height: MediaQuery.of(context).size.height,
-        width: double.infinity,
-        child: Image.asset(
-          "assets/images/searchswipes1.png",
-          fit: BoxFit.cover
-        ),
+      body: Stack(
+        children: [
+          SizedBox(
+            height: MediaQuery.of(context).size.height,
+            width: double.infinity,
+            child: Image.asset(
+              "assets/images/searchswipes1.png",
+              fit: BoxFit.cover
+            ),
+          ),
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.grey,
+                borderRadius: BorderRadius.circular(10)
+              ),
+              width: MediaQuery.of(context).size.width * 0.85,
+              height: MediaQuery.of(context).size.height * 0.75,
+              child: Padding(padding: EdgeInsetsGeometry.all(10),child: Column(
+                children: [
+                  Stack(
+                    children: [
+                      Container(
+                        width: MediaQuery.of(context).size.width * 0.79,
+                        height: MediaQuery.of(context).size.height * 0.35,
+                        decoration: BoxDecoration(
+                          color: AppColors.buttonBackground,
+                          borderRadius: BorderRadius.circular(10)
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: IconButton(onPressed: (){}, icon: Icon(Icons.arrow_drop_down_circle_sharp,size: 40,color: Colors.white,)),
+                        )
+                      ),
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: Padding(
+                          padding: EdgeInsetsGeometry.symmetric(horizontal:  15, vertical: 20),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(shape: BoxShape.circle,color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    ],
+                  )
+                ],
+              ),),
+            ),
+          )
+        ],
       )
     );
   }
