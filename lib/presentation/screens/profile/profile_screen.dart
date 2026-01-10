@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/data/user/story_model.dart';
@@ -29,6 +30,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  int postsCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +49,38 @@ class _ProfileScreenState extends State<ProfileScreen>
       // Our own profile
       context.read<FetchUserCubit>().fetchUser();
       context.read<ProfileCubit>().listenToUserProfile();
+    }
+
+    showPostCount();
+  }
+  void showPostCount() async {
+    postsCount =  await getUserPostsCount(widget.userId ?? "");
+    print("postscount $postsCount");
+  }
+
+
+  Future<int> getUserPostsCount(String userId) async {
+    try {
+      final postsRef = FirebaseDatabase.instance.ref('posts/$userId');
+
+      final snapshot = await postsRef.get();
+
+      if (!snapshot.exists || snapshot.value == null) {
+        return 0;
+      }
+
+      if (snapshot.value is Map) {
+        return (snapshot.value as Map).length;
+      }
+
+      if (snapshot.value is List) {
+        return (snapshot.value as List).length;
+      }
+
+      return 0;
+    } catch (e) {
+      print('Error fetching posts count for user $userId: $e');
+      return 0;
     }
   }
 
@@ -306,7 +341,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      profileDetailsCounts(textTheme, "0", "Posts"), // TODO: fetch real post count if needed
+                      profileDetailsCounts(textTheme, postsCount.toString(), "Posts"), // TODO: fetch real post count if needed
                       profileDetailsCounts(textTheme, user.followersCount.toString(), "Followers"),
                       profileDetailsCounts(textTheme, user.followingCount.toString(), "Following"),
                       profileDetailsCounts(textTheme, user.subscribers.length.toString(), "Subscribers"),
