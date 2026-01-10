@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:myydoctor/data/posts/pic_post_model.dart';
@@ -112,7 +113,6 @@ class PicPostRepository {
     });
   }
 
-  /// Checks if a user is a doctor (with caching)
   static Future<bool> _getIsDoctor(String uid) async {
     // Return from cache if available
     if (_doctorCache.containsKey(uid)) {
@@ -120,16 +120,22 @@ class PicPostRepository {
     }
 
     try {
-      final snapshot = await FirebaseDatabase.instance
-          .ref("users/$uid")
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
           .get();
 
-      if (!snapshot.exists || snapshot.value is! Map) {
+      if (!docSnapshot.exists) {
         _doctorCache[uid] = false;
         return false;
       }
 
-      final userData = snapshot.value as Map<dynamic, dynamic>;
+      final userData = docSnapshot.data();
+      if (userData == null) {
+        _doctorCache[uid] = false;
+        return false;
+      }
+
       final preference = userData['userPreference'] as List<dynamic>?;
 
       final isDoctor = preference != null &&

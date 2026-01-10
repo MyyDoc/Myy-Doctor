@@ -9,6 +9,9 @@ import 'package:myydoctor/presentation/screens/search/search_screen.dart';
 import 'package:myydoctor/presentation/widgets/common_widgets.dart';
 import 'package:myydoctor/services/location/location.dart';
 
+import '../profile/get_user/bloc/get_user_cubit/get_user_cubit.dart';
+import '../profile/profile/bloc/profile_cubit.dart';
+
 
 class Homescreen extends StatefulWidget {
   const Homescreen({super.key});
@@ -28,6 +31,8 @@ class _HomescreenState extends State<Homescreen> {
   void initState() {
     super.initState();
     _getCurrentLocation();
+    context.read<FetchUserCubit>().fetchUser();
+    context.read<ProfileCubit>().listenToUserProfile();
   }
 
   Future<void> _getCurrentLocation() async {
