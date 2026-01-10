@@ -4,6 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/data/user/story_model.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
+import 'package:myydoctor/presentation/screens/profile/get_user/bloc/get_user_cubit/get_user_cubit.dart';
+import 'package:myydoctor/presentation/screens/profile/profile/bloc/profile_cubit.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_by_id/bloc/fetch_user_details_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/reel_post_uploding.dart';
 import 'package:myydoctor/presentation/screens/profile/story_view/bloc/fetch_story_cubit/fetch_my_stories_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/story_view/watch_story_screen.dart';
@@ -15,7 +18,8 @@ import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
 import 'package:myydoctor/presentation/widgets/profile/vip.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.userId});
+  final String? userId;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -24,11 +28,25 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
-    context.read<FetchMyStoriesCubit>().fetchMyStories();
     _tabController = TabController(length: 3, vsync: this);
+
+    final targetUserId = widget.userId ?? FirebaseAuth.instance.currentUser!.uid;
+
+    // Always fetch stories of the profile owner
+    context.read<FetchMyStoriesCubit>().fetchMyStories();
+
+    if (widget.userId != null) {
+      // We are viewing ANOTHER doctor's profile
+      context.read<FetchUserDetailsCubit>().fetchUserById(targetUserId);
+    } else {
+      // Our own profile
+      context.read<FetchUserCubit>().fetchUser();
+      context.read<ProfileCubit>().listenToUserProfile();
+    }
   }
 
   @override
@@ -37,137 +55,120 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.dispose();
   }
 
+  // Helper to know if we are viewing our own profile
+  bool get isOwnProfile => widget.userId == null;
+
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme; // TextTheme
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color(0xFF1F323C),
-        title: Row(
-          children: [
-            Text(
-              "Antony Maxwell",
-              style: textTheme.titleLarge!.copyWith(
-                color: Color(0xFFD4AF37),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Icon(Icons.arrow_drop_down, color: Color(0xFFD4AF37)),
-          ],
-        ),
+        backgroundColor: const Color(0xFF1F323C),
+        title: _buildAppBarTitle(textTheme),
         leading: GestureDetector(
-          onTap: () async {
-            await FirebaseAuth.instance.signOut();
-          },
-          child: Icon(Icons.lock_person_rounded, color: Colors.amber),
+          onTap: () => FirebaseAuth.instance.signOut(),
+          child: const Icon(Icons.lock_person_rounded, color: Colors.amber),
         ),
         automaticallyImplyLeading: false,
         actions: [
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
+          if (isOwnProfile)
+            GestureDetector(
+              onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => ReelPostUplodingScreen(),
-                ),
-              );
-            },
-            child: Icon(
-              Icons.add_box_outlined,
-              color: Color(0xFFD4AF37),
-              size: 30,
+                MaterialPageRoute(builder: (_) => ReelPostUplodingScreen()),
+              ),
+              child: const Icon(Icons.add_box_outlined, color: Color(0xFFD4AF37), size: 30),
             ),
-          ),
-          GestureDetector(
-            onTap:
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ChatListScreen()),
-                ),
-            child: Padding(
-              padding: const EdgeInsets.all(15.0),
-              child: Icon(
-                Icons.message_outlined,
-                color: Color(0xFFD4AF37),
-                size: 30,
+          if (isOwnProfile)
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ChatListScreen()),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.all(15.0),
+                child: Icon(Icons.message_outlined, color: Color(0xFFD4AF37), size: 30),
               ),
             ),
-          ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          await context.read<FetchMyStoriesCubit>().fetchMyStories();
+          final targetUserId = widget.userId ?? FirebaseAuth.instance.currentUser!.uid;
+          await Future.wait([
+            context.read<FetchMyStoriesCubit>().fetchMyStories(),
+            if (widget.userId != null)
+              context.read<FetchUserDetailsCubit>().fetchUserById(targetUserId)
+            else ...[
+              context.read<FetchUserCubit>().fetchUser(),
+              context.read<ProfileCubit>().fetchCurrentUserProfile(),
+            ],
+          ]);
         },
         child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    // Profile details section
-                    Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [Color(0xFFFFFFFF), Color(0xFFCDE4EA)],
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(15.0),
-                        child: profileDetailsMainContainer(textTheme, context),
-                      ),
-                    ),
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  BlocBuilder<FetchUserCubit, FetchUserState>(
+                    builder: (context, state) {
 
-                    // Tab bar
-                    Container(
-                      color: Color(0xFF1F323C),
-                      child: TabBar(
-                        controller: _tabController,
-                        labelColor: Colors.black,
-                        tabs: [
-                          Tab(
-                            child: Icon(
-                              Icons.grid_view_rounded,
-                              color: Color(0xFFD4AF37),
-                              size: 32,
-                            ),
+                      if (state is! FetchUserSuccess || !state.isDoctor) {
+                        return const SizedBox.shrink();
+                      }
+
+                      return Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [Color(0xFFFFFFFF), Color(0xFFCDE4EA)],
                           ),
-                          Tab(
-                            child: Icon(
-                              Icons.list_rounded,
-                              color: Color(0xFFD4AF37),
-                              size: 40,
-                            ),
-                          ),
-                          Tab(
-                            child: Icon(
-                              Icons.bookmark,
-                              color: Color(0xFFD4AF37),
-                              size: 32,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(15.0),
+                          child: profileDetailsMainContainer(textTheme, context),
+                        ),
+                      );
+                    },
+                  ),
+
+                  // TabBar - always shown for doctors
+                  BlocBuilder<FetchUserCubit, FetchUserState>(
+                    builder: (context, userState) {
+                      if (userState is! FetchUserSuccess || !userState.isDoctor) {
+                        return const SizedBox.shrink();
+                      }
+
+                      return Container(
+                        color: const Color(0xFF1F323C),
+                        child: TabBar(
+                          controller: _tabController,
+                          labelColor: Colors.black,
+                          tabs: const [
+                            Tab(child: Icon(Icons.grid_view_rounded, color: Color(0xFFD4AF37), size: 32)),
+                            Tab(child: Icon(Icons.list_rounded, color: Color(0xFFD4AF37), size: 40)),
+                            Tab(child: Icon(Icons.bookmark, color: Color(0xFFD4AF37), size: 32)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
-            ];
-          },
+            ),
+          ],
           body: TabBarView(
             controller: _tabController,
-            children: [
+            children: const [
               GlobalPostFeed(),
-
               Column(
                 children: [
-                  PaymentPosterContainer(textTheme: textTheme),
+                  PaymentPosterContainer(textTheme: TextTheme(),), // will use Theme inside the widget
                   Expanded(child: VipPrivilages()),
                 ],
               ),
-
               SavedContents(),
             ],
           ),
@@ -176,10 +177,92 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Column profileDetailsMainContainer(
-    TextTheme textTheme,
-    BuildContext context,
-  ) {
+  // AppBar title - works for both own profile and other doctors
+  Widget _buildAppBarTitle(TextTheme textTheme) {
+    if (widget.userId != null) {
+      return BlocBuilder<FetchUserDetailsCubit, FetchUserDetailsState>(
+        builder: (context, state) {
+          String name = "Doctor";
+          if (state is FetchUserDetailsSuccess) name = state.user.fullName;
+          if (state is FetchUserDetailsLoading) name = "Loading...";
+          return Row(
+            children: [
+              Text(
+                name,
+                style: textTheme.titleLarge!.copyWith(
+                  color: const Color(0xFFD4AF37),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Icon(Icons.arrow_drop_down, color: Color(0xFFD4AF37)),
+            ],
+          );
+        },
+      );
+    } else {
+      return BlocBuilder<ProfileCubit, ProfileState>(
+        builder: (context, state) {
+          String name = "User";
+          if (state is ProfileLoaded) name = state.user.fullName;
+          if (state is ProfileLoading) name = "Loading...";
+          return Row(
+            children: [
+              Text(
+                name,
+                style: textTheme.titleLarge!.copyWith(
+                  color: const Color(0xFFD4AF37),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Icon(Icons.arrow_drop_down, color: Color(0xFFD4AF37)),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  // Main profile content
+  Widget profileDetailsMainContainer(TextTheme textTheme, BuildContext context) {
+    if (widget.userId != null) {
+      // Viewing another doctor
+      return BlocBuilder<FetchUserDetailsCubit, FetchUserDetailsState>(
+        builder: (context, state) {
+          if (state is FetchUserDetailsLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state is FetchUserDetailsError || state is FetchUserDetailsNotFound) {
+            return Center(child: Text(state is FetchUserDetailsError ? state.message : "User not found"));
+          }
+          if (state is FetchUserDetailsSuccess) {
+            final user = state.user;
+            return _buildProfileBody(textTheme, user, context);
+          }
+          return const SizedBox();
+        },
+      );
+    } else {
+      // Own profile
+      return BlocBuilder<ProfileCubit, ProfileState>(
+        builder: (context, state) {
+          if (state is ProfileLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state is ProfileError) {
+            return Center(child: Text(state.message));
+          }
+          if (state is ProfileLoaded) {
+            final user = state.user;
+            return _buildProfileBody(textTheme, user, context);
+          }
+          return const SizedBox();
+        },
+      );
+    }
+  }
+
+  // Shared UI for both cases
+  Widget _buildProfileBody(TextTheme textTheme, dynamic user, BuildContext context) {
     return Column(
       children: [
         Row(
@@ -187,7 +270,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             CircleAvatar(
               radius: 50,
               backgroundImage: NetworkImage(
-                "https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc",
+                user.profilePicture ??
+                    'https://ui-avatars.com/api/?name=${Uri.encodeComponent(user.fullName)}&background=0D8ABC&color=fff',
               ),
             ),
             const SizedBox(width: 15),
@@ -197,24 +281,20 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      profileDetailsCounts(textTheme, "10", "Posts"),
-                      profileDetailsCounts(textTheme, "150", "Followers"),
-                      profileDetailsCounts(textTheme, "50", "Following"),
-                      profileDetailsCounts(textTheme, "80", "Subscribers"),
+                      profileDetailsCounts(textTheme, "0", "Posts"), // TODO: fetch real post count if needed
+                      profileDetailsCounts(textTheme, user.followersCount.toString(), "Followers"),
+                      profileDetailsCounts(textTheme, user.followingCount.toString(), "Following"),
+                      profileDetailsCounts(textTheme, user.subscribers.length.toString(), "Subscribers"),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Expanded(child: customContainerWidget("Edit Profile")),
-                      const SizedBox(width: 10),
-                      Expanded(child: customContainerWidget("Subscriber Chat")),
-                      const SizedBox(width: 15),
-                      Icon(
-                        Icons.person_add_alt,
-                        color: Color(0xFFD4AF37),
-                        size: 29,
-                      ),
+                      if (isOwnProfile) Expanded(child: customContainerWidget("Edit Profile")),
+                      if (isOwnProfile) const SizedBox(width: 10),
+                      if (isOwnProfile) Expanded(child: customContainerWidget("Subscriber Chat")),
+                      if (isOwnProfile) const SizedBox(width: 15),
+                      if (isOwnProfile) const Icon(Icons.person_add_alt, color: Color(0xFFD4AF37), size: 29),
                     ],
                   ),
                 ],
@@ -224,6 +304,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         const SizedBox(height: 15),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,92 +312,69 @@ class _ProfileScreenState extends State<ProfileScreen>
                 Row(
                   children: [
                     Text(
-                      "Dr. Antony Max",
-                      style: textTheme.titleLarge!.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      user.fullName,
+                      style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(
-                      height: 30,
-                      width: 40,
-                      child: Image.asset(
-                        "assets/images/8ad19fdbc58af4bd5b0a3f9441f03fe5c09755ca.png",
-                        fit: BoxFit.contain,
+                    if (user.isVerified)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: SizedBox(
+                          height: 30,
+                          width: 40,
+                          child: Image(image: AssetImage("assets/images/8ad19fdbc58af4bd5b0a3f9441f03fe5c09755ca.png"), fit: BoxFit.contain),
+                        ),
                       ),
-                    ),
                   ],
                 ),
-                Text("@antonymax"),
-                Text(
-                  "Developer of myydoc",
-                  style: textTheme.bodyLarge!.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text("@${user.username}"),
+                if (user.bio?.isNotEmpty == true)
+                  Text(user.bio!, style: textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(width: 10),
             Expanded(
               child: GestureDetector(
-                onTap:
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatScreen(isFromTeleMed: true, ),
-                      ),
-                    ),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ChatScreen(isFromTeleMed: true)),
+                ),
                 child: customContainerWidget("Tele Medicine"),
               ),
             ),
             const SizedBox(width: 15),
-            Text("🪙", style: TextStyle(fontSize: 22)),
+            const Text("🪙", style: TextStyle(fontSize: 22)),
             const SizedBox(width: 5),
             Text(
-              "256",
-              style: textTheme.titleLarge!.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
+              user.walletBalance.toStringAsFixed(0),
+              style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold, fontSize: 20),
             ),
           ],
         ),
         const SizedBox(height: 15),
+        // Stories
         BlocBuilder<FetchMyStoriesCubit, FetchMyStoriesState>(
           builder: (context, state) {
             if (state is FetchMyStoriesLoading || state is FetchMyStoriesInitial) {
-              return const SizedBox(height: 100); // or add Shimmer loader here
+              return const SizedBox(height: 100);
             }
-
-            List<StoryModel> stories = [];
-            if (state is FetchMyStoriesSuccess) {
-              stories = state.stories;
-            }
-
-            final bool hasStories = stories.isNotEmpty;
-            final int itemCount = hasStories ? stories.length + 1 : 1; // +1 for "Add Story" circle
+            final stories = state is FetchMyStoriesSuccess ? state.stories : <StoryModel>[];
+            final itemCount = stories.isNotEmpty ? stories.length + 1 : 1;
 
             return SizedBox(
               height: 100,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                separatorBuilder: (context, index) => const SizedBox(width: 12),
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
                 itemCount: itemCount,
                 itemBuilder: (context, index) {
-                  // Index 0 is always the "Add Story" circle
                   if (index == 0) {
                     return GestureDetector(
-                      onTap: () async{
+                      onTap: () async {
                         final result = await Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const StoryCreatorHome(),
-                          ),
+                          MaterialPageRoute(builder: (_) => const StoryCreatorHome()),
                         );
-
-                        print('Story creator returned: $result');
-
-                        if(result == "success"){
-                          print("trying again");
+                        if (result == "success") {
                           context.read<FetchMyStoriesCubit>().fetchMyStories();
                         }
                       },
@@ -329,20 +387,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                     );
                   }
-
-                  // Other indices: actual stories (index - 1 because 0 is Add)
-                  final storyIndex = index - 1; // This is the real index in stories list
-                  final story = stories[storyIndex];
-
+                  final story = stories[index - 1];
                   return GestureDetector(
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => MyStoryViewer(
-                            stories: stories,
-                            initialIndex: storyIndex,
-                          ),
+                          builder: (_) => MyStoryViewer(stories: stories, initialIndex: index - 1),
                         ),
                       );
                     },
@@ -367,14 +418,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          count,
-          style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
-        ),
-        Text(
-          label,
-          style: textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold),
-        ),
+        Text(count, style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold)),
+        Text(label, style: textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -385,11 +430,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       height: 30,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: Color(0xFF1F323C),
+        color: const Color(0xFF1F323C),
       ),
       child: Text(
         text,
-        style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold),
+        style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold),
       ),
     );
   }

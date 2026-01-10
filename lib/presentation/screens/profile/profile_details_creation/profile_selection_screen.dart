@@ -59,15 +59,15 @@ class ProfileTypeScreen extends StatelessWidget {
                           SecondAppButton(
                             screenHeight: screenHeight,
                             screenWidth: screenWidth,
-                            text: 'I am a Healthcare Professional',
+                            text: 'I am a Healthcare Professional ( Doctor )',
                             ontap: () {
                               SaveProfilePreferenceCubit.occupation =
-                                  'healthcare professional';
+                                  'Doctor';
 
                               context
                                   .read<SaveProfilePreferenceCubit>()
                                   .createAndsavePreference(
-                                    'Healthcare Professional',
+                                    'Doctor',
                                     const HealthcareProfile(),
                                   );
                             },
