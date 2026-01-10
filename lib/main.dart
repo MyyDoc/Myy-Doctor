@@ -1,9 +1,13 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:myydoctor/domain/firebase_service.dart';
 import 'package:myydoctor/firebase_options.dart';
 import 'package:myydoctor/presentation/screens/auth/splash_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/presentation/screens/profile/get_user/bloc/get_user_cubit/get_user_cubit.dart';
+import 'package:myydoctor/presentation/screens/profile/profile/bloc/profile_cubit.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_by_id/bloc/fetch_user_details_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_age/save_age_bloc.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_pic/save_profile_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
@@ -34,7 +38,10 @@ void main() async {
         BlocProvider(create: (_) => ReelCommentCubit()),
         BlocProvider(create: (_) => UploadStoryCubit()),
         BlocProvider(create: (_) => FetchMyStoriesCubit()),
-        BlocProvider(create: (_) => SavePostCubit(),)
+        BlocProvider(create: (_) => SavePostCubit(),),
+        BlocProvider(create: (_) => FetchUserCubit(),),
+        BlocProvider(create: (_) => ProfileCubit(FirebaseService()),),
+        BlocProvider(create: (_) => FetchUserDetailsCubit(),)
       ],
       child: const MyApp(),
     ),

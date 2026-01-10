@@ -14,6 +14,7 @@ class FeedContainerItem extends StatelessWidget {
   final String? ownerId;
   final bool isInitiallySaved;
   final TextTheme textTheme;
+  final bool isDoctor;
   const FeedContainerItem({
     super.key,
     required this.textTheme,
@@ -23,6 +24,7 @@ class FeedContainerItem extends StatelessWidget {
     this.postId,
     this.ownerId,
     required this.isInitiallySaved,
+    required this.isDoctor
   });
 
   @override
@@ -38,7 +40,7 @@ class FeedContainerItem extends StatelessWidget {
               children: [
                 GestureDetector(
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(),));
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(userId: ownerId,),));
                   },
                   child: Row(
                     children: [
