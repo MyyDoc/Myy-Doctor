@@ -1,7 +1,7 @@
 import 'package:bloc/bloc.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 part 'get_user_state.dart';
 
@@ -25,29 +25,72 @@ class FetchUserCubit extends Cubit<FetchUserState> {
       }
 
       final uid = authUser.uid;
-      final userRef = FirebaseDatabase.instance.ref().child('users').child(uid);
 
-      final snapshot = await userRef.get();
+      // ───────────────────────────────────────────────
+      // This is the line you wanted:
+      final userDocRef = FirebaseFirestore.instance.collection('users').doc(uid);
+      // ───────────────────────────────────────────────
 
-      if (!snapshot.exists) {
+      final docSnapshot = await userDocRef.get();
+
+      if (!docSnapshot.exists) {
+        print('No user document found for uid: $uid');
         emit(const FetchUserSuccess(userData: {}, isDoctor: false));
         return;
       }
 
-      final Map<dynamic, dynamic> rawData = snapshot.value as Map<dynamic, dynamic>;
-      final Map<String, dynamic> userData = rawData.cast<String, dynamic>();
+      // Get the full data as Map<String, dynamic>
+      final userData = docSnapshot.data() as Map<String, dynamic>;
 
+      // For better debugging — print everything nicely
+      print('=== User Data from Firestore (uid: $uid) ===');
+      userData.forEach((key, value) {
+        print('  $key: $value');
+      });
+
+      // Calculate isDoctor
       bool isDoctor = false;
       if (userData.containsKey('userPreference') &&
           userData['userPreference'] is List &&
           (userData['userPreference'] as List).isNotEmpty) {
         final preferenceList = userData['userPreference'] as List<dynamic>;
-        isDoctor = preferenceList[0] == 'Doctor';
+        isDoctor = preferenceList[0].toString().toLowerCase() == 'doctor';
       }
+
+      print('Is Doctor: $isDoctor');
 
       emit(FetchUserSuccess(userData: userData, isDoctor: isDoctor));
     } catch (e) {
+      print('Error fetching user from Firestore: $e');
       emit(FetchUserError(e.toString()));
     }
+  }
+
+  // Optional: Real-time listener version
+  Future<void> listenToUser() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .listen((snapshot) {
+      if (!snapshot.exists) {
+        emit(const FetchUserSuccess(userData: {}, isDoctor: false));
+        return;
+      }
+
+      final userData = snapshot.data()!;
+      bool isDoctor = false;
+      if (userData['userPreference'] is List &&
+          (userData['userPreference'] as List).isNotEmpty) {
+        isDoctor = (userData['userPreference'] as List)[0].toString().toLowerCase() == 'doctor';
+      }
+
+      emit(FetchUserSuccess(userData: userData, isDoctor: isDoctor));
+    }, onError: (error) {
+      emit(FetchUserError(error.toString()));
+    });
   }
 }

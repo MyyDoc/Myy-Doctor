@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/data/user/story_model.dart';
@@ -29,12 +30,14 @@ class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  int postsCount = 0;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
 
-    final targetUserId = widget.userId ?? FirebaseAuth.instance.currentUser!.uid;
+    final targetUserId = widget.userId ?? FirebaseAuth.instance.currentUser?.uid ?? "";
 
     // Always fetch stories of the profile owner
     context.read<FetchMyStoriesCubit>().fetchMyStories();
@@ -46,6 +49,38 @@ class _ProfileScreenState extends State<ProfileScreen>
       // Our own profile
       context.read<FetchUserCubit>().fetchUser();
       context.read<ProfileCubit>().listenToUserProfile();
+    }
+
+    showPostCount();
+  }
+  void showPostCount() async {
+    postsCount =  await getUserPostsCount(widget.userId ?? "");
+    print("postscount $postsCount");
+  }
+
+
+  Future<int> getUserPostsCount(String userId) async {
+    try {
+      final postsRef = FirebaseDatabase.instance.ref('posts/$userId');
+
+      final snapshot = await postsRef.get();
+
+      if (!snapshot.exists || snapshot.value == null) {
+        return 0;
+      }
+
+      if (snapshot.value is Map) {
+        return (snapshot.value as Map).length;
+      }
+
+      if (snapshot.value is List) {
+        return (snapshot.value as List).length;
+      }
+
+      return 0;
+    } catch (e) {
+      print('Error fetching posts count for user $userId: $e');
+      return 0;
     }
   }
 
@@ -67,8 +102,12 @@ class _ProfileScreenState extends State<ProfileScreen>
         backgroundColor: const Color(0xFF1F323C),
         title: _buildAppBarTitle(textTheme),
         leading: GestureDetector(
-          onTap: () => FirebaseAuth.instance.signOut(),
-          child: const Icon(Icons.lock_person_rounded, color: Colors.amber),
+          onTap: widget.userId != null ? (){
+            Navigator.pop(context);
+          } : () {
+            FirebaseAuth.instance.signOut();
+          },
+          child: widget.userId != null ? Icon(Icons.arrow_back_ios, color: Colors.amber,) : Icon(Icons.lock_person_rounded, color: Colors.amber),
         ),
         automaticallyImplyLeading: false,
         actions: [
@@ -114,23 +153,40 @@ class _ProfileScreenState extends State<ProfileScreen>
                   BlocBuilder<FetchUserCubit, FetchUserState>(
                     builder: (context, state) {
 
-                      if (state is! FetchUserSuccess || !state.isDoctor) {
+                      if( state is FetchUserInitial) {
+                        print("initial");
                         return const SizedBox.shrink();
                       }
+                      if (state is FetchUserLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (state is FetchUserError) {
+                        return Center(child: Text(state.error));
+                      }
 
-                      return Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: [Color(0xFFFFFFFF), Color(0xFFCDE4EA)],
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(15.0),
-                          child: profileDetailsMainContainer(textTheme, context),
-                        ),
-                      );
+                      else {
+                        if(state is FetchUserSuccess) {
+                          if(state.isDoctor || widget.userId != null){
+                            return Container(
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  colors: [Color(0xFFFFFFFF), Color(0xFFCDE4EA)],
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(15.0),
+                                child: profileDetailsMainContainer(textTheme, context),
+                              ),
+                            );
+                          }
+                        }
+                      }
+
+                      print(state);
+                      return SizedBox();
+
                     },
                   ),
 
@@ -146,10 +202,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                         child: TabBar(
                           controller: _tabController,
                           labelColor: Colors.black,
-                          tabs: const [
+                          tabs: [
                             Tab(child: Icon(Icons.grid_view_rounded, color: Color(0xFFD4AF37), size: 32)),
+                            if(widget.userId == null)
                             Tab(child: Icon(Icons.list_rounded, color: Color(0xFFD4AF37), size: 40)),
-                            Tab(child: Icon(Icons.bookmark, color: Color(0xFFD4AF37), size: 32)),
+                            if(widget.userId == null)
+                              Tab(child: Icon(Icons.bookmark, color: Color(0xFFD4AF37), size: 32)),
                           ],
                         ),
                       );
@@ -161,14 +219,16 @@ class _ProfileScreenState extends State<ProfileScreen>
           ],
           body: TabBarView(
             controller: _tabController,
-            children: const [
+            children: [
               GlobalPostFeed(),
+              if(widget.userId == null)
               Column(
                 children: [
-                  PaymentPosterContainer(textTheme: TextTheme(),), // will use Theme inside the widget
+                  PaymentPosterContainer(textTheme: textTheme), // will use Theme inside the widget
                   Expanded(child: VipPrivilages()),
                 ],
               ),
+              if(widget.userId == null)
               SavedContents(),
             ],
           ),
@@ -281,7 +341,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      profileDetailsCounts(textTheme, "0", "Posts"), // TODO: fetch real post count if needed
+                      profileDetailsCounts(textTheme, postsCount.toString(), "Posts"), // TODO: fetch real post count if needed
                       profileDetailsCounts(textTheme, user.followersCount.toString(), "Followers"),
                       profileDetailsCounts(textTheme, user.followingCount.toString(), "Following"),
                       profileDetailsCounts(textTheme, user.subscribers.length.toString(), "Subscribers"),
@@ -294,7 +354,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       if (isOwnProfile) const SizedBox(width: 10),
                       if (isOwnProfile) Expanded(child: customContainerWidget("Subscriber Chat")),
                       if (isOwnProfile) const SizedBox(width: 15),
-                      if (isOwnProfile) const Icon(Icons.person_add_alt, color: Color(0xFFD4AF37), size: 29),
+                      if (widget.userId != null) const Icon(Icons.person_add_alt, color: Color(0xFFD4AF37), size: 29),
                     ],
                   ),
                 ],
@@ -352,6 +412,9 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         const SizedBox(height: 15),
         // Stories
+        if(widget.userId != null)
+          SizedBox()
+        else
         BlocBuilder<FetchMyStoriesCubit, FetchMyStoriesState>(
           builder: (context, state) {
             if (state is FetchMyStoriesLoading || state is FetchMyStoriesInitial) {
@@ -368,6 +431,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                 itemCount: itemCount,
                 itemBuilder: (context, index) {
                   if (index == 0) {
+                    if(widget.userId != null) {
+                      return SizedBox();
+                    }
                     return GestureDetector(
                       onTap: () async {
                         final result = await Navigator.push(

@@ -29,6 +29,7 @@ class FeedContainerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return SizedBox(
       width: double.infinity,
       child: Column(
@@ -39,9 +40,9 @@ class FeedContainerItem extends StatelessWidget {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: () {
+                  onTap: isDoctor ?  () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(userId: ownerId,),));
-                  },
+                  } :  null,
                   child: Row(
                     children: [
                       CircleAvatar(
