@@ -1,141 +1,134 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:myydoctor/presentation/widgets/chat/chat_bubble_widget.dart';
+
+import '../../../core/services/chat_service.dart';
+import '../../../data/chat/message_model.dart';
+import '../../widgets/chat/chat_bubble_widget.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key, this.isFromTeleMed = false});
-
+  final String chatId;           // Required - we pass this from previous screen
   final bool isFromTeleMed;
+
+  const ChatScreen({
+    super.key,
+    required this.chatId,
+    this.isFromTeleMed = false,
+  });
+
   @override
-  _ChatScreenState createState() => _ChatScreenState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final ChatService _chatService = ChatService();
 
-  List<Message> messages = [
-    Message(text: "Hey! How are you doing?", isMe: false, time: "10:30 AM"),
-    Message(
-      text: "I'm good! Just finished my morning workout 💪",
-      isMe: true,
-      time: "10:32 AM",
-    ),
-    Message(
-      text: "That's awesome! What kind of workout?",
-      isMe: false,
-      time: "10:33 AM",
-    ),
-    Message(
-      text: "Just some cardio and weight training",
-      isMe: true,
-      time: "10:35 AM",
-    ),
-    Message(
-      text: "Nice! I should start working out too 😅",
-      isMe: false,
-      time: "10:36 AM",
-    ),
-    Message(
-      text: "You totally should! It feels great",
-      isMe: true,
-      time: "10:37 AM",
-    ),
-    Message(
-      text: "Maybe we can go together sometime?",
-      isMe: false,
-      time: "10:38 AM",
-    ),
-    Message(
-      text: "Absolutely! That would be fun 🎉",
-      isMe: true,
-      time: "10:40 AM",
-    ),
-    Message(
-      text: "Great! How about this weekend?",
-      isMe: false,
-      time: "10:41 AM",
-    ),
-    Message(
-      text: "Perfect! Saturday morning works for me",
-      isMe: true,
-      time: "10:42 AM",
-    ),
-  ];
+  String? _otherUserId;
+  String _otherUserName = "Loading...";
+  String _otherUserPhoto = '';
+  String _status = "offline";
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isNotEmpty) {
-      setState(() {
-        messages.add(
-          Message(
-            text: _messageController.text.trim(),
-            isMe: true,
-            time: _getCurrentTime(),
-          ),
-        );
-      });
-      _messageController.clear();
-      _scrollToBottom();
+  @override
+  void initState() {
+    super.initState();
+    _loadChatInfo();
+    // Optional: mark as read when opening chat
+    _chatService.markChatAsRead(widget.chatId);
+  }
+
+  Future<void> _loadChatInfo() async {
+    try {
+      final otherId = await _chatService.getOtherParticipant(widget.chatId);
+      if (otherId == null || otherId.isEmpty) {
+        setState(() => _otherUserName = "Unknown");
+        return;
+      }
+
+      setState(() => _otherUserId = otherId);
+
+      // Get real user data from Firestore
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(otherId)
+          .get();
+
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        setState(() {
+          _otherUserName = data['fullName'] ?? "User";
+          _otherUserPhoto = data['profilePicture'] ?? '';
+          // You can add lastActive logic later for real status
+          _status = "online"; // placeholder
+        });
+      } else {
+        setState(() => _otherUserName = "User not found");
+      }
+    } catch (e) {
+      setState(() => _otherUserName = "Error");
     }
   }
 
-  void _scrollToBottom() {
-    Future.delayed(Duration(milliseconds: 100), () {
+  void _sendMessage() {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
+
+    _chatService.sendTextMessage(
+      chatId: widget.chatId,
+      text: text,
+    );
+
+    _messageController.clear();
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom({bool animate = true}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: Duration(milliseconds: 300),
+          duration: animate ? const Duration(milliseconds: 300) : Duration.zero,
           curve: Curves.easeOut,
         );
       }
     });
   }
 
-  String _getCurrentTime() {
-    final now = DateTime.now();
-    final hour = now.hour > 12 ? now.hour - 12 : now.hour;
-    final minute = now.minute.toString().padLeft(2, '0');
-    final period = now.hour >= 12 ? 'PM' : 'AM';
-    return '$hour:$minute $period';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(60),
+        preferredSize: const Size.fromHeight(60),
         child: AppBar(
-          backgroundColor: Color(0xFF1F323C),
-          leading: Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
+          backgroundColor: const Color(0xFF1F323C),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
           ),
           title: Row(
             children: [
-              CircleAvatar(
+              const CircleAvatar(
                 radius: 20,
-                backgroundColor: Colors.grey.shade300,
-                child: Icon(Icons.person, color: Colors.grey.shade600),
+                backgroundColor: Colors.grey,
+                child: Icon(Icons.person, color: Colors.white),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'John Doe',
-                      style: TextStyle(
+                      _otherUserName,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
-                      'online',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                      "",
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ],
                 ),
@@ -144,187 +137,204 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           actions: [
             IconButton(
-              icon: Icon(Icons.flag_outlined, color: Colors.white),
+              icon: const Icon(Icons.more_vert, color: Colors.white),
               onPressed: () {},
             ),
           ],
         ),
       ),
-      body: Container(
-        color: Colors.white,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (widget.isFromTeleMed)
-              Padding(
-                padding: const EdgeInsets.all(15.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    IntrinsicWidth(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Color(0xFFE3EBF3),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(15.0),
-                              child: Text(
-                                "I want to book an appointment.\nwhen can i visit the clinic",
-                                style: TextTheme.of(context).bodyLarge,
+      body: Column(
+        children: [
+          // Telemedicine special banner (keep your existing design)
+          if (widget.isFromTeleMed)
+            Padding(
+              padding: const EdgeInsets.all(15.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  IntrinsicWidth(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3EBF3),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(15.0),
+                            child: Text(
+                              "I want to book an appointment.\nWhen can I visit the clinic?",
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 50),
+                            height: 40,
+                            decoration: const BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.only(
+                                bottomLeft: Radius.circular(8),
                               ),
                             ),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 50),
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.only(
-                                  bottomLeft: Radius.circular(8),
-                                ),
-                              ),
+                            child: const Center(
                               child: Text(
                                 "Appointment Request",
                                 style: TextStyle(
                                   color: Colors.yellow,
-                                  fontSize: 23,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Icon(Icons.done_all, color: Colors.blue),
-                        const SizedBox(width: 10),
-                        Text(
-                          "Check if it has been read",
-                          style: TextStyle(color: Colors.blue),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    IntrinsicWidth(
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                        child: Text(
-                          "Cancel your appointment",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            if (widget.isFromTeleMed) Spacer(),
-            if (!widget.isFromTeleMed)
-              Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: EdgeInsets.all(8),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    return MessageBubble(message: messages[index]);
-                  },
-                ),
-              ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.emoji_emotions_outlined,
-                              color: Colors.grey.shade600,
-                            ),
-                            onPressed: () {},
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: _messageController,
-                              decoration: InputDecoration(
-                                hintText: 'Type a message',
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                              ),
-                              maxLines: null,
-                              onSubmitted: (_) => _sendMessage(),
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.attach_file,
-                              color: Colors.grey.shade600,
-                            ),
-                            onPressed: () {},
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.camera_alt,
-                              color: Colors.grey.shade600,
-                            ),
-                            onPressed: () {},
                           ),
                         ],
                       ),
                     ),
                   ),
-                  SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _sendMessage,
-                    child: Container(
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Color(0xFF075E54),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.send, color: Colors.white, size: 20),
-                    ),
-                  ),
+                  // ... keep your cancel button, read status, etc.
                 ],
               ),
             ),
-          ],
-        ),
+
+          // Real-time messages list
+          Expanded(
+            child: StreamBuilder<List<Message>>(
+              stream: _chatService.getMessages(widget.chatId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text("No messages yet"));
+                }
+
+                final messages = snapshot.data!;
+
+                // Scroll to bottom when new messages arrive
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _scrollToBottom(animate: false);
+                });
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(8),
+                  reverse: true, // Important: newest messages at bottom
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final isMe = message.senderId == FirebaseAuth.instance.currentUser?.uid;
+
+                    return MessageBubble(
+                      message: LocalMessageAdapter(
+                        text: message.text,
+                        isMe: isMe,
+                        time: _formatTimestamp(message.createdAt),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+
+          // Message input bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.emoji_emotions_outlined,
+                              color: Colors.grey.shade600),
+                          onPressed: () {},
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _messageController,
+                            decoration: const InputDecoration(
+                              hintText: 'Type a message...',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(vertical: 10),
+                            ),
+                            maxLines: null,
+                            textCapitalization: TextCapitalization.sentences,
+                            onSubmitted: (_) => _sendMessage(),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.attach_file, color: Colors.grey.shade600),
+                          onPressed: () {
+                            // TODO: Implement image/file picker later
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FloatingActionButton(
+                  mini: true,
+                  backgroundColor: const Color(0xFF075E54),
+                  onPressed: _sendMessage,
+                  child: const Icon(Icons.send, color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  String _formatTimestamp(DateTime? timestamp) {
+    if (timestamp == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(timestamp);
+
+    if (diff.inDays > 0) {
+      return '${timestamp.day}/${timestamp.month}';
+    } else if (diff.inHours > 0) {
+      return '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
+    } else {
+      return '${diff.inMinutes} min ago';
+    }
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 }
 
-class Message {
+// Simple adapter so you can keep using your existing MessageBubble
+class LocalMessageAdapter {
   final String text;
   final bool isMe;
   final String time;
 
-  Message({required this.text, required this.isMe, required this.time});
+  LocalMessageAdapter({
+    required this.text,
+    required this.isMe,
+    required this.time,
+  });
 }

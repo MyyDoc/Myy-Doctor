@@ -3,11 +3,14 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/data/user/story_model.dart';
+import 'package:myydoctor/data/user/user_model.dart';
+import 'package:myydoctor/presentation/screens/auth/login.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/get_user/bloc/get_user_cubit/get_user_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/profile/bloc/profile_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_by_id/bloc/fetch_user_details_cubit.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_details_creation/edit_profile.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/reel_post_uploding.dart';
 import 'package:myydoctor/presentation/screens/profile/story_view/bloc/fetch_story_cubit/fetch_my_stories_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/story_view/watch_story_screen.dart';
@@ -17,6 +20,9 @@ import 'package:myydoctor/presentation/widgets/profile/global_post_feed.dart';
 import 'package:myydoctor/presentation/widgets/profile/goto_payment_container.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
 import 'package:myydoctor/presentation/widgets/profile/vip.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../core/services/chat_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, this.userId});
@@ -39,14 +45,11 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     final targetUserId = widget.userId ?? FirebaseAuth.instance.currentUser?.uid ?? "";
 
-    // Always fetch stories of the profile owner
     context.read<FetchMyStoriesCubit>().fetchMyStories();
 
     if (widget.userId != null) {
-      // We are viewing ANOTHER doctor's profile
       context.read<FetchUserDetailsCubit>().fetchUserById(targetUserId);
     } else {
-      // Our own profile
       context.read<FetchUserCubit>().fetchUser();
       context.read<ProfileCubit>().listenToUserProfile();
     }
@@ -55,7 +58,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
   void showPostCount() async {
     postsCount =  await getUserPostsCount(widget.userId ?? "");
-    print("postscount $postsCount");
   }
 
 
@@ -79,7 +81,6 @@ class _ProfileScreenState extends State<ProfileScreen>
 
       return 0;
     } catch (e) {
-      print('Error fetching posts count for user $userId: $e');
       return 0;
     }
   }
@@ -90,7 +91,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.dispose();
   }
 
-  // Helper to know if we are viewing our own profile
   bool get isOwnProfile => widget.userId == null;
 
   @override
@@ -104,8 +104,11 @@ class _ProfileScreenState extends State<ProfileScreen>
         leading: GestureDetector(
           onTap: widget.userId != null ? (){
             Navigator.pop(context);
-          } : () {
+          } : () async{
+            SharedPreferences prefs = await SharedPreferences.getInstance();
             FirebaseAuth.instance.signOut();
+            await prefs.setBool('isLoggedIn', true);
+            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => LoginAndSignUp(),), (route) => false,);
           },
           child: widget.userId != null ? Icon(Icons.arrow_back_ios, color: Colors.amber,) : Icon(Icons.lock_person_rounded, color: Colors.amber),
         ),
@@ -154,7 +157,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                     builder: (context, state) {
 
                       if( state is FetchUserInitial) {
-                        print("initial");
                         return const SizedBox.shrink();
                       }
                       if (state is FetchUserLoading) {
@@ -190,7 +192,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                     },
                   ),
 
-                  // TabBar - always shown for doctors
                   BlocBuilder<FetchUserCubit, FetchUserState>(
                     builder: (context, userState) {
                       if (userState is! FetchUserSuccess || !userState.isDoctor) {
@@ -224,7 +225,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               if(widget.userId == null)
               Column(
                 children: [
-                  PaymentPosterContainer(textTheme: textTheme), // will use Theme inside the widget
+                  PaymentPosterContainer(textTheme: textTheme),
                   Expanded(child: VipPrivilages()),
                 ],
               ),
@@ -237,7 +238,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // AppBar title - works for both own profile and other doctors
   Widget _buildAppBarTitle(TextTheme textTheme) {
     if (widget.userId != null) {
       return BlocBuilder<FetchUserDetailsCubit, FetchUserDetailsState>(
@@ -282,10 +282,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  // Main profile content
   Widget profileDetailsMainContainer(TextTheme textTheme, BuildContext context) {
     if (widget.userId != null) {
-      // Viewing another doctor
       return BlocBuilder<FetchUserDetailsCubit, FetchUserDetailsState>(
         builder: (context, state) {
           if (state is FetchUserDetailsLoading) {
@@ -302,7 +300,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         },
       );
     } else {
-      // Own profile
       return BlocBuilder<ProfileCubit, ProfileState>(
         builder: (context, state) {
           if (state is ProfileLoading) {
@@ -321,8 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  // Shared UI for both cases
-  Widget _buildProfileBody(TextTheme textTheme, dynamic user, BuildContext context) {
+  Widget _buildProfileBody(TextTheme textTheme, UserModel user, BuildContext context) {
     return Column(
       children: [
         Row(
@@ -350,7 +346,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      if (isOwnProfile) Expanded(child: customContainerWidget("Edit Profile")),
+                      if (isOwnProfile) Expanded(child: GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfileScreen(
+                          initialUser: context.read<ProfileCubit>().state is ProfileLoaded
+                              ? (context.read<ProfileCubit>().state as ProfileLoaded).user
+                              : null,
+                        ),)),
+                          child: customContainerWidget("Edit Profile"))),
                       if (isOwnProfile) const SizedBox(width: 10),
                       if (isOwnProfile) Expanded(child: customContainerWidget("Subscriber Chat")),
                       if (isOwnProfile) const SizedBox(width: 15),
@@ -394,10 +396,13 @@ class _ProfileScreenState extends State<ProfileScreen>
             const SizedBox(width: 10),
             Expanded(
               child: GestureDetector(
-                onTap: () => Navigator.push(
+                onTap: () async{
+                  final chatId = await ChatService().getOrCreateChatRoom(user.id);
+                  Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ChatScreen(isFromTeleMed: true)),
-                ),
+                  MaterialPageRoute(builder: (_) => ChatScreen(isFromTeleMed: true, chatId: chatId,)),
+                );
+                },
                 child: customContainerWidget("Tele Medicine"),
               ),
             ),
@@ -411,7 +416,6 @@ class _ProfileScreenState extends State<ProfileScreen>
           ],
         ),
         const SizedBox(height: 15),
-        // Stories
         if(widget.userId != null)
           SizedBox()
         else

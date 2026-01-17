@@ -19,7 +19,6 @@ class UserModel {
   final List<String> searchHistory;
   final String languagePreference;
   final List<String> deviceTokens;
-  final String? location;
   final List<String> badges;
   final String subscriptionStatus;
   final double walletBalance;
@@ -30,6 +29,9 @@ class UserModel {
   final List<String> chatUsers;
   final DateTime? lastSeen;
   final List<String> features;
+  final List<String>? speciality;
+  final String? lat;
+  final String? lng;
 
   // Privacy settings
   final String privacy;
@@ -56,7 +58,6 @@ class UserModel {
     this.searchHistory = const [],
     this.languagePreference = 'en',
     this.deviceTokens = const [],
-    this.location,
     this.badges = const [],
     this.subscriptionStatus = 'free',
     this.walletBalance = 0.0,
@@ -71,6 +72,9 @@ class UserModel {
     this.themePreference = 'light',
     this.blockedUsers = const [],
     this.mutedUsers = const [],
+    this.speciality = const [],
+    this.lat,
+    this.lng
   });
 
   // Computed properties
@@ -97,7 +101,6 @@ class UserModel {
       'searchHistory': searchHistory,
       'languagePreference': languagePreference,
       'deviceTokens': deviceTokens,
-      'location': location,
       'badges': badges,
       'subscriptionStatus': subscriptionStatus,
       'walletBalance': walletBalance,
@@ -112,6 +115,9 @@ class UserModel {
       'themePreference': themePreference,
       'blockedUsers': blockedUsers,
       'mutedUsers': mutedUsers,
+      'speciality': speciality,
+      'lat':lat,
+      'lng':lng
     };
   }
 
@@ -135,7 +141,6 @@ class UserModel {
       searchHistory: List<String>.from(json['searchHistory'] ?? []),
       languagePreference: json['languagePreference'] ?? 'en',
       deviceTokens: List<String>.from(json['deviceTokens'] ?? []),
-      location: json['location'],
       badges: List<String>.from(json['badges'] ?? []),
       subscriptionStatus: json['subscriptionStatus'] ?? 'free',
       walletBalance: (json['walletBalance'] ?? 0.0).toDouble(),
@@ -150,6 +155,9 @@ class UserModel {
       themePreference: json['themePreference'] ?? 'light',
       blockedUsers: List<String>.from(json['blockedUsers'] ?? []),
       mutedUsers: List<String>.from(json['mutedUsers'] ?? []),
+      speciality: List<String>.from(json['speciality'] ?? []),
+      lat: json['lat'] ?? "",
+      lng: json['lng'] ?? ""
     );
   }
 
@@ -187,6 +195,9 @@ class UserModel {
     String? themePreference,
     List<String>? blockedUsers,
     List<String>? mutedUsers,
+    List<String>? speciality,
+    String? lat,
+    String? lng,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -207,7 +218,6 @@ class UserModel {
       searchHistory: searchHistory ?? this.searchHistory,
       languagePreference: languagePreference ?? this.languagePreference,
       deviceTokens: deviceTokens ?? this.deviceTokens,
-      location: location ?? this.location,
       badges: badges ?? this.badges,
       subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
       walletBalance: walletBalance ?? this.walletBalance,
@@ -222,6 +232,9 @@ class UserModel {
       themePreference: themePreference ?? this.themePreference,
       blockedUsers: blockedUsers ?? this.blockedUsers,
       mutedUsers: mutedUsers ?? this.mutedUsers,
+      speciality: speciality ?? this.speciality,
+      lng: lng ?? this.lng,
+      lat: lat ?? this.lat
     );
   }
 }
