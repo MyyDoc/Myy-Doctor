@@ -70,7 +70,7 @@ class ChatTileWidget extends StatelessWidget {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ChatScreen()),
+              MaterialPageRoute(builder: (context) => ChatScreen(chatId: '',)),
             );
           },
         );

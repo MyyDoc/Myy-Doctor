@@ -3,6 +3,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/data/user/story_model.dart';
+import 'package:myydoctor/data/user/user_model.dart';
+import 'package:myydoctor/presentation/screens/auth/login.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/get_user/bloc/get_user_cubit/get_user_cubit.dart';
@@ -18,6 +20,9 @@ import 'package:myydoctor/presentation/widgets/profile/global_post_feed.dart';
 import 'package:myydoctor/presentation/widgets/profile/goto_payment_container.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
 import 'package:myydoctor/presentation/widgets/profile/vip.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../core/services/chat_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, this.userId});
@@ -99,8 +104,11 @@ class _ProfileScreenState extends State<ProfileScreen>
         leading: GestureDetector(
           onTap: widget.userId != null ? (){
             Navigator.pop(context);
-          } : () {
+          } : () async{
+            SharedPreferences prefs = await SharedPreferences.getInstance();
             FirebaseAuth.instance.signOut();
+            await prefs.setBool('isLoggedIn', true);
+            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => LoginAndSignUp(),), (route) => false,);
           },
           child: widget.userId != null ? Icon(Icons.arrow_back_ios, color: Colors.amber,) : Icon(Icons.lock_person_rounded, color: Colors.amber),
         ),
@@ -310,7 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  Widget _buildProfileBody(TextTheme textTheme, dynamic user, BuildContext context) {
+  Widget _buildProfileBody(TextTheme textTheme, UserModel user, BuildContext context) {
     return Column(
       children: [
         Row(
@@ -388,10 +396,13 @@ class _ProfileScreenState extends State<ProfileScreen>
             const SizedBox(width: 10),
             Expanded(
               child: GestureDetector(
-                onTap: () => Navigator.push(
+                onTap: () async{
+                  final chatId = await ChatService().getOrCreateChatRoom(user.id);
+                  Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ChatScreen(isFromTeleMed: true)),
-                ),
+                  MaterialPageRoute(builder: (_) => ChatScreen(isFromTeleMed: true, chatId: chatId,)),
+                );
+                },
                 child: customContainerWidget("Tele Medicine"),
               ),
             ),

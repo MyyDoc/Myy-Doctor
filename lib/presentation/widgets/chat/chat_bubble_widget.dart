@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
 
 class MessageBubble extends StatelessWidget {
-  final Message message;
+  final LocalMessageAdapter message;
 
   MessageBubble({required this.message});
 
