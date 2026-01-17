@@ -18,6 +18,7 @@ import 'package:myydoctor/presentation/screens/profile/story_view/bloc/fetch_sto
 import 'package:myydoctor/presentation/screens/profile/story_view/bloc/upload_story_cubit/upload_story_cubit.dart';
 import 'package:myydoctor/presentation/screens/reels/bloc/reel_comment_cubit/reel_comment_cubit.dart';
 import 'package:myydoctor/presentation/screens/reels/bloc/reel_feed_cubit/reel_feed_cubit.dart';
+import 'package:myydoctor/presentation/screens/search/cubit/search_near_doctor_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,7 +42,8 @@ void main() async {
         BlocProvider(create: (_) => SavePostCubit(),),
         BlocProvider(create: (_) => FetchUserCubit(),),
         BlocProvider(create: (_) => ProfileCubit(FirebaseService()),),
-        BlocProvider(create: (_) => FetchUserDetailsCubit(),)
+        BlocProvider(create: (_) => FetchUserDetailsCubit(),),
+        BlocProvider(create: (_) => SearchNearDoctorCubit(),),
       ],
       child: const MyApp(),
     ),

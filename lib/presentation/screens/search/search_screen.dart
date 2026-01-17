@@ -1,10 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/data/user/doctor_search_model.dart';
+import 'package:myydoctor/presentation/screens/search/cubit/search_near_doctor_cubit.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
+import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
 import 'package:myydoctor/services/doctors_list.dart';
 import 'package:myydoctor/services/location/doctors_location.dart';
 import 'package:myydoctor/services/location/location.dart';
+import 'package:myydoctor/services/search_near_doctor/near_doctor_search_result.dart';
+import 'package:myydoctor/services/search_near_doctor/search_near_doctor.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key, required this.currentLoc});
@@ -57,24 +63,24 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  void _searchDoctors() {
-    print("location from prev ${widget.currentLoc}");
-    setState(() {
-      filteredDoctors = searchService.searchDoctorsByLocation(
-        currentLocation: currentCity ?? widget.currentLoc,
-        searchQuery: searchQuery,
-        specialization: selectedSpecialization,
-      );
-    });
-  }
+  // void _searchDoctors() {
+  //   print("location from prev ${widget.currentLoc}");
+  //   setState(() {
+  //     filteredDoctors = searchService.searchDoctorsByLocation(
+  //       currentLocation: currentCity ?? widget.currentLoc,
+  //       searchQuery: searchQuery,
+  //       specialization: selectedSpecialization,
+  //     );
+  //   });
+  // }
 
-  void _resetSearch() {
-    setState(() {
-      selectedSpecialization = null;
-      searchQuery = "";
-    });
-    _searchDoctors();
-  }
+  // void _resetSearch() {
+  //   setState(() {
+  //     selectedSpecialization = null;
+  //     searchQuery = "";
+  //   });
+  //   _searchDoctors();
+  // }
 
   Future<void> _getCurrentLocation() async {
     setState(() {
@@ -221,6 +227,9 @@ class _SearchScreenState extends State<SearchScreen> {
               controller: searchController,
               onChanged: (value) {
                 showSwipes = false;
+                context.read<SearchNearDoctorCubit>().searchResult(
+                  searchController.text.trim(),
+                );
                 setState(() {});
               },
               decoration: InputDecoration(
@@ -247,10 +256,90 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       body:
           searchController.text.isNotEmpty
-              ? Column(children: [Center(child: Padding(
-                padding: const EdgeInsets.only(top:  8.0),
-                child: Text('No results'),
-              ))])
+              ? BlocConsumer<SearchNearDoctorCubit, SearchNearDoctorState>(
+                listener: (context, state) {
+                  if (state is SearchErrorState) {
+                    showAppSnackBar(context, state.message);
+                  }
+                },
+                builder: (context, state) {
+                  if (state is SearchDoctorSuccsussState) {
+                    if (state.doctors.isEmpty) {
+                      return const Center(child: Text('No doctors found'));
+                    }
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: state.doctors.length,
+                      separatorBuilder:
+                          (_, __) => const Divider(
+                            height: 1,
+                            indent: 72, // aligns like WhatsApp
+                          ),
+                      itemBuilder: (context, index) {
+                        final DoctorSearchModel item = state.doctors[index];
+
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
+
+                          /// 🔹 Profile picture
+                          leading: CircleAvatar(
+                            radius: 22,
+                            backgroundColor: Colors.grey.shade200,
+                            backgroundImage:
+                                item.profilePictureUrl.isNotEmpty
+                                    ? NetworkImage(item.profilePictureUrl)
+                                    : null,
+                            child:
+                                item.profilePictureUrl.isEmpty
+                                    ? const Icon(
+                                      Icons.person,
+                                      color: Colors.grey,
+                                    )
+                                    : null,
+                          ),
+
+                          /// 🔹 Doctor name
+                          title: Text(
+                            item.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+
+                          /// 🔹 Specialities
+                          subtitle: Text(
+                            item.specialities.join(', '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+
+                          /// 🔹 Distance (only if available)
+                          trailing:
+                              item.distanceKm > 0
+                                  ? Text(
+                                    '${item.distanceKm.toStringAsFixed(1)} km',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  )
+                                  : null,
+
+                          onTap: () {
+                            // Navigate to doctor profile
+                            // Navigator.push(...)
+                          },
+                        );
+                      },
+                    );
+                  }
+
+                  return const SizedBox.shrink();
+                },
+              )
               : SingleChildScrollView(
                 child: Stack(
                   children: [
@@ -275,7 +364,8 @@ class _SearchScreenState extends State<SearchScreen> {
                             child: Padding(
                               padding: EdgeInsetsGeometry.all(10),
                               child: Column(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Stack(
                                     children: [
@@ -288,7 +378,9 @@ class _SearchScreenState extends State<SearchScreen> {
                                             0.35,
                                         decoration: BoxDecoration(
                                           color: AppColors.buttonBackground,
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                       ),
                                       Align(
@@ -304,7 +396,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                               });
                                             },
                                             icon: Icon(
-                                              Icons.arrow_drop_down_circle_sharp,
+                                              Icons
+                                                  .arrow_drop_down_circle_sharp,
                                               size: 40,
                                               color: Colors.white,
                                             ),
@@ -390,11 +483,13 @@ class _SearchScreenState extends State<SearchScreen> {
                                                           Alignment.centerLeft,
                                                       child: Container(
                                                         alignment:
-                                                            Alignment.centerRight,
+                                                            Alignment
+                                                                .centerRight,
                                                         width: 140,
                                                         height: 27,
                                                         decoration: BoxDecoration(
-                                                          color: Colors.grey[100],
+                                                          color:
+                                                              Colors.grey[100],
                                                           borderRadius:
                                                               BorderRadius.circular(
                                                                 30,
@@ -431,10 +526,12 @@ class _SearchScreenState extends State<SearchScreen> {
                                           vertical: 10,
                                         ),
                                         decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                           color: Colors.grey[400],
                                         ),
-                
+
                                         child: Column(
                                           children: [
                                             // Image.asset('assets/images/star.png'),
@@ -460,7 +557,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                   ),
                                   SizedBox(
                                     height:
-                                        MediaQuery.of(context).size.height * 0.1,
+                                        MediaQuery.of(context).size.height *
+                                        0.1,
                                   ),
                                   Row(
                                     mainAxisAlignment:

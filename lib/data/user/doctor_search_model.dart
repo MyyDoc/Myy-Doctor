@@ -1,17 +1,15 @@
 class DoctorSearchModel {
   final String id;
   final String name;
-  final String specialistId;
-  final double lat;
-  final double lng;
+  final String profilePictureUrl;
+  final List<String> specialities;
   final double distanceKm;
 
   DoctorSearchModel({
     required this.id,
     required this.name,
-    required this.specialistId,
-    required this.lat,
-    required this.lng,
+    required this.profilePictureUrl,
+    required this.specialities,
     required this.distanceKm,
   });
 
@@ -22,10 +20,11 @@ class DoctorSearchModel {
   }) {
     return DoctorSearchModel(
       id: id,
-      name: data['name'],
-      specialistId: data['specialistId'],
-      lat: data['lat'],
-      lng: data['lng'],
+      name: (data['fullName'] ?? '').toString(),
+      profilePictureUrl:
+          (data['profilePicture'] ?? '').toString(),
+      specialities:
+          List<String>.from(data['specialities'] ?? []),
       distanceKm: distanceKm,
     );
   }
