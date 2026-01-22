@@ -47,7 +47,6 @@ class SavePostCubit extends Cubit<SavePostState> {
     }
   }
 
-  // Check if a post is already saved by current user
   Future<bool> isPostSaved(String postId) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;

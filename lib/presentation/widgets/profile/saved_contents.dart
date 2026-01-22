@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_reel_cubit/upload_reel_cubit.dart';
@@ -34,6 +36,7 @@ class SavedContents extends StatefulWidget {
 
 class _SavedContentsState extends State<SavedContents>
     with AutomaticKeepAliveClientMixin<SavedContents> {
+
   @override
   bool get wantKeepAlive => true;
 
@@ -45,8 +48,9 @@ class _SavedContentsState extends State<SavedContents>
   @override
   void initState() {
     super.initState();
+
     postStream = PicPostRepository()
-        .getPostsStream(useOwnerProfile: false)
+        .getSavedPostsStream()
         .asBroadcastStream();
 
     reelStream = ReelRepository()
@@ -149,7 +153,7 @@ class _PostsGrid extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            showAppSnackBar(context, "Failed to load posts");
+            showAppSnackBar(context, "Failed to load saved posts");
           });
           return const Center(child: Text("Something went wrong"));
         }
@@ -160,6 +164,15 @@ class _PostsGrid extends StatelessWidget {
 
         final posts = snapshot.data!;
 
+        if (posts.isEmpty) {
+          return const Center(
+            child: Text(
+              "No saved posts yet",
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+          );
+        }
+
         return GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
@@ -169,16 +182,39 @@ class _PostsGrid extends StatelessWidget {
           ),
           itemCount: posts.length,
           itemBuilder: (context, index) {
+            final post = posts[index];
             return GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const SavedFeedsDetailedScreen(),
+                    builder: (_) => SavedFeedsDetailedScreen(),
                   ),
                 );
               },
-              child: Image.network(posts[index].imageUrl, fit: BoxFit.cover),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    post.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: Colors.grey[900],
+                      child: const Icon(Icons.broken_image, color: Colors.white),
+                    ),
+                  ),
+                  // Optional: small bookmark icon to indicate saved
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Icon(
+                      Icons.bookmark,
+                      color: Colors.white.withOpacity(0.8),
+                      size: 28,
+                    ),
+                  ),
+                ],
+              ),
             );
           },
         );
@@ -186,7 +222,6 @@ class _PostsGrid extends StatelessWidget {
     );
   }
 }
-
 /// ─────────────────────────────────────────────────────────
 /// REELS GRID
 /// ─────────────────────────────────────────────────────────

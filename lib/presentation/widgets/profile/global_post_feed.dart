@@ -65,7 +65,7 @@ class _GlobalPostFeedState extends State<GlobalPostFeed>
                 create: (context) => PostCommentCubit(),
                 child: FeedContainerItem(
                   isDoctor: posts[index].isOwnerDoctor,
-                  isInitiallySaved: false,
+                  isInitiallySaved: posts[index].isSaved,
                   textTheme: textTheme,
                   postId: posts[index].postId,
                   ownerId: posts[index].ownerId,

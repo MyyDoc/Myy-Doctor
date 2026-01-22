@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -33,15 +35,25 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+    with TickerProviderStateMixin { // ← Changed to TickerProviderStateMixin (allows multiple controllers)
+
+  TabController? _tabController;
 
   int postsCount = 0;
+  bool _isFollowing = false;
+
+  // Real-time followers & following counts
+  int _followersCount = 0;
+  int _followingCount = 0;
+
+  StreamSubscription? _followersListener;
+  StreamSubscription? _followingListener;
+
+  bool _tabControllerInitialized = false; // Prevent multiple initializations
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
 
     final targetUserId = widget.userId ?? FirebaseAuth.instance.currentUser?.uid ?? "";
 
@@ -49,45 +61,172 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     if (widget.userId != null) {
       context.read<FetchUserDetailsCubit>().fetchUserById(targetUserId);
+      _checkIfFollowing(targetUserId);
+      _listenToFollowersAndFollowing(targetUserId);
     } else {
       context.read<FetchUserCubit>().fetchUser();
       context.read<ProfileCubit>().listenToUserProfile();
+      _listenToFollowersAndFollowing(targetUserId);
     }
 
     showPostCount();
   }
-  void showPostCount() async {
-    postsCount =  await getUserPostsCount(widget.userId ?? "");
+
+  void _initializeTabController(bool showMultipleTabs) {
+    if (_tabControllerInitialized) return; // Prevent multiple calls
+
+    final tabLength = showMultipleTabs ? 3 : 1;
+
+    _tabController?.dispose();
+    _tabController = TabController(
+      length: tabLength,
+      vsync: this,
+      initialIndex: 0,
+    );
+
+    _tabControllerInitialized = true;
   }
 
+  void showPostCount() async {
+    postsCount = await getUserPostsCount(widget.userId ?? "");
+    if (mounted) setState(() {});
+  }
 
   Future<int> getUserPostsCount(String userId) async {
     try {
       final postsRef = FirebaseDatabase.instance.ref('posts/$userId');
-
       final snapshot = await postsRef.get();
 
-      if (!snapshot.exists || snapshot.value == null) {
-        return 0;
-      }
+      if (!snapshot.exists || snapshot.value == null) return 0;
 
-      if (snapshot.value is Map) {
-        return (snapshot.value as Map).length;
-      }
-
-      if (snapshot.value is List) {
-        return (snapshot.value as List).length;
-      }
-
+      if (snapshot.value is Map) return (snapshot.value as Map).length;
+      if (snapshot.value is List) return (snapshot.value as List).length;
       return 0;
     } catch (e) {
       return 0;
     }
   }
 
+  Future<void> _checkIfFollowing(String targetUserId) async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null || currentUid == targetUserId) return;
+
+    final followingRef = FirebaseDatabase.instance
+        .ref('users/$currentUid/followingList/$targetUserId');
+
+    final snapshot = await followingRef.get();
+    if (mounted) {
+      setState(() {
+        _isFollowing = snapshot.exists;
+      });
+    }
+  }
+
+  void _listenToFollowersAndFollowing(String targetUserId) {
+    // Followers count
+    final followersRef = FirebaseDatabase.instance
+        .ref('users/$targetUserId/followersList');
+    _followersListener = followersRef.onValue.listen((event) {
+      final data = event.snapshot.value;
+      final count = data is Map ? data.length : 0;
+      if (mounted) {
+        setState(() {
+          _followersCount = count;
+        });
+      }
+    });
+
+    // Following count (only for own profile)
+    if (targetUserId == FirebaseAuth.instance.currentUser?.uid) {
+      final followingRef = FirebaseDatabase.instance
+          .ref('users/$targetUserId/followingList');
+      _followingListener = followingRef.onValue.listen((event) {
+        final data = event.snapshot.value;
+        final count = data is Map ? data.length : 0;
+        if (mounted) {
+          setState(() {
+            _followingCount = count;
+          });
+        }
+      });
+    }
+  }
+
+  Future<void> _toggleFollow(String targetUserId) async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null || currentUid == targetUserId) return;
+
+    final followingRef = FirebaseDatabase.instance
+        .ref('users/$currentUid/followingList/$targetUserId');
+    final followersRef = FirebaseDatabase.instance
+        .ref('users/$targetUserId/followersList/$currentUid');
+
+    if (_isFollowing) {
+      final bool? confirmUnfollow = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: const Color(0xFF1F323C),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.person_remove_rounded, color: Color(0xFFD4AF37), size: 28),
+              SizedBox(width: 12),
+              Text(
+                "Unfollow",
+                style: TextStyle(color: Color(0xFFD4AF37), fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: const Text(
+            "Unfollow this user?\nYou won't see their posts in your feed anymore.",
+            style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.4),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              style: TextButton.styleFrom(foregroundColor: Colors.white70),
+              child: const Text("Cancel", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFD4AF37),
+                backgroundColor: const Color(0xFFD4AF37).withOpacity(0.15),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
+                ),
+              ),
+              child: const Text("Unfollow", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmUnfollow != true) return;
+
+      await followingRef.remove();
+      await followersRef.remove();
+    } else {
+      await followingRef.set(true);
+      await followersRef.set(true);
+    }
+
+    if (mounted) {
+      setState(() {
+        _isFollowing = !_isFollowing;
+      });
+    }
+  }
+
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
+    _followersListener?.cancel();
+    _followingListener?.cancel();
     super.dispose();
   }
 
@@ -102,26 +241,99 @@ class _ProfileScreenState extends State<ProfileScreen>
         backgroundColor: const Color(0xFF1F323C),
         title: _buildAppBarTitle(textTheme),
         leading: GestureDetector(
-          onTap: widget.userId != null ? (){
-            Navigator.pop(context);
-          } : () async{
-            SharedPreferences prefs = await SharedPreferences.getInstance();
-            FirebaseAuth.instance.signOut();
-            await prefs.setBool('isLoggedIn', true);
-            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => LoginAndSignUp(),), (route) => false,);
+          onTap: widget.userId != null
+              ? () => Navigator.pop(context)
+              : () async {
+            final bool? shouldLogout = await showDialog<bool>(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext dialogContext) {
+                return AlertDialog(
+                  backgroundColor: const Color(0xFF1F323C),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: const Row(
+                    children: [
+                      Icon(Icons.logout_rounded, color: Color(0xFFD4AF37), size: 28),
+                      SizedBox(width: 12),
+                      Text(
+                        "Logout",
+                        style: TextStyle(color: Color(0xFFD4AF37), fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  content: const Text(
+                    "Are you sure you want to logout?\nYou'll need to sign in again to continue.",
+                    style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.4),
+                  ),
+                  actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, false),
+                      style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                      child: const Text("Cancel", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, true),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFFD4AF37),
+                        backgroundColor: const Color(0xFFD4AF37).withOpacity(0.15),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
+                        ),
+                      ),
+                      child: const Text("Logout", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                );
+              },
+            );
+
+            if (shouldLogout == true) {
+              try {
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                await FirebaseAuth.instance.signOut();
+                await prefs.setBool('isLoggedIn', false);
+
+                if (!mounted) return;
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginAndSignUp()),
+                      (route) => false,
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Logout failed: ${e.toString()}"), backgroundColor: Colors.redAccent),
+                );
+              }
+            }
           },
-          child: widget.userId != null ? Icon(Icons.arrow_back_ios, color: Colors.amber,) : Icon(Icons.lock_person_rounded, color: Colors.amber),
+          child: widget.userId != null
+              ? const Icon(Icons.arrow_back_ios, color: Colors.amber)
+              : const Icon(Icons.lock_person_rounded, color: Colors.amber),
         ),
         automaticallyImplyLeading: false,
         actions: [
-          if (isOwnProfile)
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => ReelPostUplodingScreen()),
-              ),
-              child: const Icon(Icons.add_box_outlined, color: Color(0xFFD4AF37), size: 30),
-            ),
+          BlocBuilder<FetchUserCubit, FetchUserState>(
+            builder: (context, state) {
+              if (state is FetchUserSuccess && state.isDoctor && isOwnProfile) {
+                return GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ReelPostUplodingScreen()),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Icon(Icons.add_box_outlined, color: Color(0xFFD4AF37), size: 30),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           if (isOwnProfile)
             GestureDetector(
               onTap: () => Navigator.push(
@@ -140,9 +352,10 @@ class _ProfileScreenState extends State<ProfileScreen>
           final targetUserId = widget.userId ?? FirebaseAuth.instance.currentUser!.uid;
           await Future.wait([
             context.read<FetchMyStoriesCubit>().fetchMyStories(),
-            if (widget.userId != null)
-              context.read<FetchUserDetailsCubit>().fetchUserById(targetUserId)
-            else ...[
+            if (widget.userId != null) ...[
+              context.read<FetchUserDetailsCubit>().fetchUserById(targetUserId),
+              _checkIfFollowing(targetUserId),
+            ] else ...[
               context.read<FetchUserCubit>().fetchUser(),
               context.read<ProfileCubit>().fetchCurrentUserProfile(),
             ],
@@ -155,48 +368,50 @@ class _ProfileScreenState extends State<ProfileScreen>
                 children: [
                   BlocBuilder<FetchUserCubit, FetchUserState>(
                     builder: (context, state) {
-
-                      if( state is FetchUserInitial) {
-                        return const SizedBox.shrink();
-                      }
                       if (state is FetchUserLoading) {
                         return const Center(child: CircularProgressIndicator());
                       }
                       if (state is FetchUserError) {
                         return Center(child: Text(state.error));
                       }
+                      if (state is FetchUserSuccess) {
+                        final isDoctorProfile = state.isDoctor || widget.userId != null;
 
-                      else {
-                        if(state is FetchUserSuccess) {
-                          if(state.isDoctor || widget.userId != null){
-                            return Container(
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
-                                  colors: [Color(0xFFFFFFFF), Color(0xFFCDE4EA)],
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(15.0),
-                                child: profileDetailsMainContainer(textTheme, context),
-                              ),
-                            );
+                        // Initialize TabController only once after build
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted && !_tabControllerInitialized) {
+                            _initializeTabController(isDoctorProfile);
+                            setState(() {}); // Ensure rebuild after initialization
                           }
+                        });
+
+                        if (isDoctorProfile) {
+                          return Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [Color(0xFFFFFFFF), Color(0xFFCDE4EA)],
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(15.0),
+                              child: profileDetailsMainContainer(textTheme, context),
+                            ),
+                          );
                         }
                       }
-
-                      print(state);
-                      return SizedBox();
-
+                      return const SizedBox.shrink();
                     },
                   ),
 
                   BlocBuilder<FetchUserCubit, FetchUserState>(
-                    builder: (context, userState) {
-                      if (userState is! FetchUserSuccess || !userState.isDoctor) {
+                    builder: (context, state) {
+                      if (state is! FetchUserSuccess || !state.isDoctor) {
                         return const SizedBox.shrink();
                       }
+
+                      if (_tabController == null) return const SizedBox.shrink();
 
                       return Container(
                         color: const Color(0xFF1F323C),
@@ -204,11 +419,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                           controller: _tabController,
                           labelColor: Colors.black,
                           tabs: [
-                            Tab(child: Icon(Icons.grid_view_rounded, color: Color(0xFFD4AF37), size: 32)),
-                            if(widget.userId == null)
-                            Tab(child: Icon(Icons.list_rounded, color: Color(0xFFD4AF37), size: 40)),
-                            if(widget.userId == null)
-                              Tab(child: Icon(Icons.bookmark, color: Color(0xFFD4AF37), size: 32)),
+                            const Tab(child: Icon(Icons.grid_view_rounded, color: Color(0xFFD4AF37), size: 32)),
+                            if (widget.userId == null)
+                              const Tab(child: Icon(Icons.list_rounded, color: Color(0xFFD4AF37), size: 40)),
+                            if (widget.userId == null)
+                              const Tab(child: Icon(Icons.bookmark, color: Color(0xFFD4AF37), size: 32)),
                           ],
                         ),
                       );
@@ -218,20 +433,27 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
           ],
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              GlobalPostFeed(),
-              if(widget.userId == null)
-              Column(
+          body: Builder(
+            builder: (context) {
+              if (_tabController == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              return TabBarView(
+                controller: _tabController,
                 children: [
-                  PaymentPosterContainer(textTheme: textTheme),
-                  Expanded(child: VipPrivilages()),
+                  const GlobalPostFeed(),
+                  if (widget.userId == null)
+                    Column(
+                      children: [
+                        PaymentPosterContainer(textTheme: textTheme),
+                        const Expanded(child: VipPrivilages()),
+                      ],
+                    ),
+                  if (widget.userId == null) const SavedContents(),
                 ],
-              ),
-              if(widget.userId == null)
-              SavedContents(),
-            ],
+              );
+            },
           ),
         ),
       ),
@@ -337,26 +559,68 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      profileDetailsCounts(textTheme, postsCount.toString(), "Posts"), // TODO: fetch real post count if needed
-                      profileDetailsCounts(textTheme, user.followersCount.toString(), "Followers"),
-                      profileDetailsCounts(textTheme, user.followingCount.toString(), "Following"),
+                      profileDetailsCounts(textTheme, postsCount.toString(), "Posts"),
+                      profileDetailsCounts(textTheme, _followersCount.toString(), "Followers"),
+                      profileDetailsCounts(textTheme, _followingCount.toString(), "Following"),
                       profileDetailsCounts(textTheme, user.subscribers.length.toString(), "Subscribers"),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      if (isOwnProfile) Expanded(child: GestureDetector(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfileScreen(
-                          initialUser: context.read<ProfileCubit>().state is ProfileLoaded
-                              ? (context.read<ProfileCubit>().state as ProfileLoaded).user
-                              : null,
-                        ),)),
-                          child: customContainerWidget("Edit Profile"))),
+                      if (isOwnProfile)
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EditProfileScreen(
+                                  initialUser: context.read<ProfileCubit>().state is ProfileLoaded
+                                      ? (context.read<ProfileCubit>().state as ProfileLoaded).user
+                                      : null,
+                                ),
+                              ),
+                            ),
+                            child: customContainerWidget("Edit Profile"),
+                          ),
+                        ),
                       if (isOwnProfile) const SizedBox(width: 10),
                       if (isOwnProfile) Expanded(child: customContainerWidget("Subscriber Chat")),
                       if (isOwnProfile) const SizedBox(width: 15),
-                      if (widget.userId != null) const Icon(Icons.person_add_alt, color: Color(0xFFD4AF37), size: 29),
+                      if (widget.userId != null)
+                        GestureDetector(
+                          onTap: () => _toggleFollow(user.id),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: _isFollowing ? Colors.transparent : const Color(0xFFD4AF37),
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: const Color(0xFFD4AF37),
+                                width: 2,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _isFollowing ? Icons.check_circle : Icons.person_add_alt,
+                                  color: _isFollowing ? const Color(0xFFD4AF37) : Colors.black,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isFollowing ? "Following" : "Follow",
+                                  style: TextStyle(
+                                    color: _isFollowing ? const Color(0xFFD4AF37) : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ],
@@ -383,7 +647,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                         child: SizedBox(
                           height: 30,
                           width: 40,
-                          child: Image(image: AssetImage("assets/images/8ad19fdbc58af4bd5b0a3f9441f03fe5c09755ca.png"), fit: BoxFit.contain),
+                          child: Image(
+                            image: AssetImage("assets/images/8ad19fdbc58af4bd5b0a3f9441f03fe5c09755ca.png"),
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                   ],
@@ -396,12 +663,14 @@ class _ProfileScreenState extends State<ProfileScreen>
             const SizedBox(width: 10),
             Expanded(
               child: GestureDetector(
-                onTap: () async{
+                onTap: () async {
                   final chatId = await ChatService().getOrCreateChatRoom(user.id);
                   Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ChatScreen(isFromTeleMed: true, chatId: chatId,)),
-                );
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(isFromTeleMed: true, chatId: chatId),
+                    ),
+                  );
                 },
                 child: customContainerWidget("Tele Medicine"),
               ),
@@ -416,70 +685,70 @@ class _ProfileScreenState extends State<ProfileScreen>
           ],
         ),
         const SizedBox(height: 15),
-        if(widget.userId != null)
-          SizedBox()
+        if (widget.userId != null)
+          const SizedBox()
         else
-        BlocBuilder<FetchMyStoriesCubit, FetchMyStoriesState>(
-          builder: (context, state) {
-            if (state is FetchMyStoriesLoading || state is FetchMyStoriesInitial) {
-              return const SizedBox(height: 100);
-            }
-            final stories = state is FetchMyStoriesSuccess ? state.stories : <StoryModel>[];
-            final itemCount = stories.isNotEmpty ? stories.length + 1 : 1;
+          BlocBuilder<FetchMyStoriesCubit, FetchMyStoriesState>(
+            builder: (context, state) {
+              if (state is FetchMyStoriesLoading || state is FetchMyStoriesInitial) {
+                return const SizedBox(height: 100);
+              }
+              final stories = state is FetchMyStoriesSuccess ? state.stories : <StoryModel>[];
+              final itemCount = stories.isNotEmpty ? stories.length + 1 : 1;
 
-            return SizedBox(
-              height: 100,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemCount: itemCount,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    if(widget.userId != null) {
-                      return SizedBox();
+              return SizedBox(
+                height: 100,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemCount: itemCount,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      if (widget.userId != null) {
+                        return const SizedBox();
+                      }
+                      return GestureDetector(
+                        onTap: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const StoryCreatorHome()),
+                          );
+                          if (result == "success") {
+                            context.read<FetchMyStoriesCubit>().fetchMyStories();
+                          }
+                        },
+                        child: StoryCircleItem(
+                          isFromProfile: true,
+                          textTheme: textTheme,
+                          index: 0,
+                          isAddButton: true,
+                          imageUrl: null,
+                        ),
+                      );
                     }
+                    final story = stories[index - 1];
                     return GestureDetector(
-                      onTap: () async {
-                        final result = await Navigator.push(
+                      onTap: () {
+                        Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const StoryCreatorHome()),
+                          MaterialPageRoute(
+                            builder: (_) => MyStoryViewer(stories: stories, initialIndex: index - 1),
+                          ),
                         );
-                        if (result == "success") {
-                          context.read<FetchMyStoriesCubit>().fetchMyStories();
-                        }
                       },
                       child: StoryCircleItem(
                         isFromProfile: true,
                         textTheme: textTheme,
-                        index: 0,
-                        isAddButton: true,
-                        imageUrl: null,
+                        index: index,
+                        imageUrl: story.imageUrl,
+                        isAddButton: false,
                       ),
                     );
-                  }
-                  final story = stories[index - 1];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => MyStoryViewer(stories: stories, initialIndex: index - 1),
-                        ),
-                      );
-                    },
-                    child: StoryCircleItem(
-                      isFromProfile: true,
-                      textTheme: textTheme,
-                      index: index,
-                      imageUrl: story.imageUrl,
-                      isAddButton: false,
-                    ),
-                  );
-                },
-              ),
-            );
-          },
-        ),
+                  },
+                ),
+              );
+            },
+          ),
       ],
     );
   }

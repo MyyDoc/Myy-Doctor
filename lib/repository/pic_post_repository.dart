@@ -113,6 +113,157 @@ class PicPostRepository {
     });
   }
 
+  Stream<List<PicPostModel>> getSavedPostsStream() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      print('getSavedPostsStream: No current user');
+      return Stream.value(<PicPostModel>[]);
+    }
+
+    final uid = currentUser.uid;
+    print('getSavedPostsStream: Fetching for user $uid');
+
+    final savedRef = FirebaseDatabase.instance
+        .ref()
+        .child('savedPosts')
+        .child(uid);
+
+    // User's own posts ref
+    final ownPostsRef = FirebaseDatabase.instance.ref('posts/$uid');
+
+    return savedRef.onValue.asyncExpand((savedEvent) {
+      // Get saved post IDs and ownerIds
+      final Map<String, String> savedPostToOwner = {}; // postId → ownerId
+      if (savedEvent.snapshot.exists && savedEvent.snapshot.value != null) {
+        final savedData = savedEvent.snapshot.value as Map<dynamic, dynamic>;
+        for (final entry in savedData.entries) {
+          final postId = entry.key as String?;
+          if (postId == null) continue;
+          final value = entry.value as Map<dynamic, dynamic>?;
+          final ownerId = value?['ownerId'] as String?;
+          if (ownerId != null) {
+            savedPostToOwner[postId] = ownerId;
+          }
+        }
+      }
+
+      // Now listen to both: saved posts + own posts
+      return ownPostsRef.onValue.asyncMap((ownEvent) async {
+        final List<Future<PicPostModel?>> futures = [];
+
+        // 1. Process OWN uploaded posts
+        if (ownEvent.snapshot.exists && ownEvent.snapshot.value != null) {
+          final ownPostsMap = ownEvent.snapshot.value as Map<dynamic, dynamic>;
+
+          for (final entry in ownPostsMap.entries) {
+            final postId = entry.key as String?;
+            if (postId == null) continue;
+
+            final postMap = entry.value as Map<dynamic, dynamic>?;
+            if (postMap == null) continue;
+
+            futures.add(_buildPostModelFromMap(
+              postMap,
+              postId,
+              uid, // owner is current user
+              isSaved: savedPostToOwner.containsKey(postId), // mark as saved if it is
+            ));
+          }
+        }
+
+        // 2. Process SAVED posts (from other users or own)
+        for (final savedEntry in savedPostToOwner.entries) {
+          final postId = savedEntry.key;
+          final ownerId = savedEntry.value;
+
+          // Skip if it's the user's own post (already added above)
+          if (ownerId == uid) continue;
+
+          futures.add(() async {
+            try {
+              final postRef = FirebaseDatabase.instance
+                  .ref('posts/$ownerId/$postId');
+
+              print('Querying saved post at: posts/$ownerId/$postId');
+
+              final postSnap = await postRef.get();
+
+              if (!postSnap.exists || postSnap.value == null) {
+                print('Saved post NOT FOUND: $postId');
+                return null;
+              }
+
+              final postMap = postSnap.value as Map<dynamic, dynamic>;
+
+              return await _buildPostModelFromMap(
+                postMap,
+                postId,
+                ownerId,
+                isSaved: true,
+              );
+            } catch (e) {
+              print('Error loading saved post $postId: $e');
+              return null;
+            }
+          }());
+        }
+
+        final results = await Future.wait(futures);
+        final validPosts = results.whereType<PicPostModel>().toList();
+
+        // Remove duplicates (if somehow added twice)
+        final uniquePosts = <String, PicPostModel>{};
+        for (final post in validPosts) {
+          uniquePosts[post.postId] = post;
+        }
+
+        final finalList = uniquePosts.values.toList();
+
+        // Sort newest first
+        finalList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+        print('Final saved + own posts count: ${finalList.length}');
+        return finalList;
+      });
+    });
+  }
+
+  /// Helper to build PicPostModel from post map
+  Future<PicPostModel> _buildPostModelFromMap(
+      Map<dynamic, dynamic> postMap,
+      String postId,
+      String ownerId, {
+        required bool isSaved,
+      }) async {
+    String? name;
+    String? profileImageUrl;
+    bool isOwnerDoctor = await _getIsDoctor(ownerId);
+
+    final userRef = FirebaseDatabase.instance.ref('users/$ownerId');
+    final userSnap = await userRef.get();
+
+    if (userSnap.exists && userSnap.value != null) {
+      final userData = userSnap.value as Map<dynamic, dynamic>;
+      name = userData['username'] as String?;
+      profileImageUrl = userData['profileImageUrl'] as String?;
+    }
+
+    var model = PicPostModel.fromMap(
+      postMap.cast<String, dynamic>(),
+      postId,
+      ownerId,
+      isSaved: isSaved,
+      isOwnerDoctor: isOwnerDoctor,
+    );
+
+    if (name != null) model = model.copyWith(name: name);
+    if (profileImageUrl != null) {
+      model = model.copyWith(profileImageUrl: profileImageUrl);
+    }
+
+    return model;
+  }
+
   static Future<bool> _getIsDoctor(String uid) async {
     // Return from cache if available
     if (_doctorCache.containsKey(uid)) {

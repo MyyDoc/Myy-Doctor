@@ -5,6 +5,8 @@ import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_pic_cubit/upload_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/reels/bloc/post_comment_cubit/post_comment_cubit.dart';
 
+import '../../screens/profile/reel_post_uploding/bloc/save_post_cubit/save_post_cubit.dart';
+
 
 class FeedContainerItem extends StatelessWidget {
   final String? postImageUrl;
@@ -156,9 +158,30 @@ class FeedContainerItem extends StatelessWidget {
                         ),
                       ),
                       const Icon(Icons.send_rounded, color: Colors.white),
-                      const Icon(
-                        Icons.bookmark_border_rounded,
-                        color: Colors.white,
+                      IconButton(
+                        icon: Icon(
+                          isInitiallySaved ? Icons.bookmark : Icons.bookmark_border,
+                          color: isInitiallySaved ? Colors.purple : Colors.white,
+                          size: 28,
+                        ),
+                        onPressed: () async {
+                          if (postId == null || ownerId == null) return;
+
+                          final cubit = context.read<SavePostCubit>();
+
+                          await cubit.toggleSave(
+                            postId: postId!,
+                            ownerId: ownerId!,
+                            isCurrentlySaved: isInitiallySaved,
+                          );
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(isInitiallySaved ? 'Post unsaved' : 'Post saved!'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
