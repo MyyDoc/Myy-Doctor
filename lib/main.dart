@@ -5,6 +5,7 @@ import 'package:myydoctor/domain/firebase_service.dart';
 import 'package:myydoctor/firebase_options.dart';
 import 'package:myydoctor/presentation/screens/auth/splash_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/presentation/screens/notifications/cubit/notification_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/get_user/bloc/get_user_cubit/get_user_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/profile/bloc/profile_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_by_id/bloc/fetch_user_details_cubit.dart';
@@ -44,6 +45,7 @@ void main() async {
         BlocProvider(create: (_) => ProfileCubit(FirebaseService()),),
         BlocProvider(create: (_) => FetchUserDetailsCubit(),),
         BlocProvider(create: (_) => SearchNearDoctorCubit(),),
+        BlocProvider(create: (_) => NotificationCubit(),),
       ],
       child: const MyApp(),
     ),
