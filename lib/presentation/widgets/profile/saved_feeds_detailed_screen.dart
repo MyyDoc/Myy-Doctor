@@ -44,7 +44,7 @@ class _SavedFeedsDetailedScreenState extends State<SavedFeedsDetailedScreen> {
             ),
           ),
           child: StreamBuilder(
-            stream: PicPostRepository().getPostsStream(useOwnerProfile: false),
+            stream: PicPostRepository().getPostsStream(useOwnerProfile: false, anotherProfile: ""),
             builder: (context, asyncSnapshot) {
               if (!asyncSnapshot.hasData) {
                 return Center(child: CircularProgressIndicator());
@@ -58,6 +58,7 @@ class _SavedFeedsDetailedScreenState extends State<SavedFeedsDetailedScreen> {
                     (context, index) => const SizedBox(height: 30),
                 itemBuilder:
                     (context, index) => FeedContainerItem(
+                      caption: posts[index].caption,
                       isDoctor: posts[index].isOwnerDoctor,
                       textTheme: textTheme,
                       personName: posts[index].name,

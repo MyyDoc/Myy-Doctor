@@ -14,8 +14,10 @@ class SettingsPage extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        automaticallyImplyLeading: false,
         centerTitle: true,
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+            child: Icon(Icons.arrow_back_ios, color: Colors.white,)),
         title: const Text(
           'Settings',
           style: TextStyle(color: Colors.white),
@@ -47,7 +49,7 @@ class SettingsPage extends StatelessWidget {
               children: const [
                 Icon(Icons.verified, color: Colors.green, size: 18),
                 SizedBox(width: 4),
-                Text('rahuljaicsam@gmail.com'),
+                Text('Verify your email address'),
                 SizedBox(width: 4),
                 Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
               ],

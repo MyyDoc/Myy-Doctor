@@ -4,8 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_pic_cubit/upload_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/reels/bloc/post_comment_cubit/post_comment_cubit.dart';
+import 'package:myydoctor/presentation/widgets/home/show_more_text.dart';
 
 import '../../screens/profile/reel_post_uploding/bloc/save_post_cubit/save_post_cubit.dart';
+import 'full_screen_view.dart';
 
 
 class FeedContainerItem extends StatelessWidget {
@@ -17,6 +19,7 @@ class FeedContainerItem extends StatelessWidget {
   final bool isInitiallySaved;
   final TextTheme textTheme;
   final bool isDoctor;
+  final String caption;
   const FeedContainerItem({
     super.key,
     required this.textTheme,
@@ -26,7 +29,8 @@ class FeedContainerItem extends StatelessWidget {
     this.postId,
     this.ownerId,
     required this.isInitiallySaved,
-    required this.isDoctor
+    required this.isDoctor,
+    required this.caption
   });
 
   @override
@@ -93,18 +97,49 @@ class FeedContainerItem extends StatelessWidget {
           const SizedBox(height: 15),
 
           /// IMAGE
-          SizedBox(
-            width: double.infinity,
-            height: 300,
-            child: Image.network(
-              postImageUrl ??
-                  "https://imgs.search.brave.com/8SB8c98eLDaKU2XtzBkYn-3RMNGpc37mjtZVHwmXOHI/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9h/ZXJpYWwtdmlldy1n/cmVlbi1tb3VudGFp/bm91cy1zY2VuZXJ5/LXN1bnJpc2VfMTgx/NjI0LTEyMzE5Lmpw/Zz9zZW10PWFpc19o/eWJyaWQmdz03NDA",
-              fit: BoxFit.cover,
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FullPostViewScreen(
+                    imageUrl: postImageUrl ??
+                        "https://fallback-url.com",
+                    personName: personName ?? "Unknown",
+                    profileImageUrl: profileImageUrl ??
+                        "https://default-profile.com",
+                    caption: caption,
+                  ),
+                ),
+              );
+            },
+            child: SizedBox(
+              width: double.infinity,
+              height: 300,
+              child: Image.network(
+                postImageUrl ??
+                    "https://imgs.search.brave.com/8SB8c98eLDaKU2XtzBkYn-3RMNGpc37mjtZVHwmXOHI/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9h/ZXJpYWwtdmlldy1n/cmVlbi1tb3VudGFp/bm91cy1zY2VuZXJ5/LXN1bnJpc2VfMTgx/NjI0LTEyMzE5Lmpw/Zz9zZW10PWFpc19o/eWJyaWQmdz03NDA",
+                fit: BoxFit.cover,
+              ),
             ),
           ),
 
+
           const SizedBox(height: 13),
 
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: ShowMoreText(
+                  text: caption,
+                  maxLines: 2,
+                  textStyle: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),const SizedBox(height: 13),
           /// ACTION BAR
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -189,6 +224,7 @@ class FeedContainerItem extends StatelessWidget {
               ],
             ),
           ),
+          Divider(color: Colors.grey.shade200, thickness: 0.5,)
         ],
       ),
     );

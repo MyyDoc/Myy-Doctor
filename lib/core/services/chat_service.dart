@@ -11,7 +11,7 @@ class ChatService {
   ChatService._internal();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  String get _currentUserId => FirebaseAuth.instance.currentUser?.uid ?? '';
 
   /// Generates a consistent chat room ID (smaller UID first)
   String _generateChatId(String userId1, String userId2) {
@@ -128,6 +128,223 @@ class ChatService {
       return snapshot.docs.map((doc) => ChatRoom.fromFirestore(doc)).toList();
     });
   }
+
+  // Inside ChatService class
+
+  /// Send appointment request + create appointment record
+  Future<void> sendAppointmentRequestMessage(String chatId) async {
+    if (_currentUserId.isEmpty) return;
+
+    // 1. Check if there's already a pending appointment request from this user
+    final existingAppt = await _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('appointments')
+        .where('requesterId', isEqualTo: _currentUserId)
+        .where('status', isEqualTo: 'pending')
+        .limit(1)
+        .get();
+
+    if (existingAppt.docs.isNotEmpty) {
+      // Already have a pending request → don't send again
+      return;
+    }
+
+    final batch = _firestore.batch();
+
+    // 2. Create the message
+    final messageRef = _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc();
+
+    const appointmentText = "I want to book an appointment.\nWhen can I visit the clinic?";
+
+    batch.set(messageRef, {
+      'text': appointmentText,
+      'senderId': _currentUserId,
+      'createdAt': FieldValue.serverTimestamp(),
+      'type': 'appointment_request',
+      'readBy': [_currentUserId],
+      'status': 'pending', // also store status in message for quick UI read
+    });
+
+    // 3. Create appointment record
+    final apptRef = _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('appointments')
+        .doc();
+
+    batch.set(apptRef, {
+      'requesterId': _currentUserId,
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+      'messageId': messageRef.id,
+    });
+
+    // 4. Update chat metadata
+    final chatDoc = await _firestore.collection('chats').doc(chatId).get();
+    final participants = List<String>.from(chatDoc.data()?['participants'] ?? []);
+    final otherUid = participants.firstWhere(
+          (id) => id != _currentUserId,
+      orElse: () => '',
+    );
+
+    final updateData = {
+      'lastMessage': {
+        'text': 'Appointment Request',
+        'senderId': _currentUserId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'type': 'appointment_request',
+      },
+      'lastMessageTime': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (otherUid.isNotEmpty) {
+      updateData['unreadCount.$otherUid'] = FieldValue.increment(1);
+    }
+
+    batch.update(_firestore.collection('chats').doc(chatId), updateData);
+
+    await batch.commit();
+  }
+  Future<void> cancelAppointmentRequest({
+    required String chatId,
+    required String messageId,
+  }) async {
+    final batch = _firestore.batch();
+
+    // update message
+    final msgRef = _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId);
+
+    batch.update(msgRef, {
+      'status': 'cancelled',
+      'cancelledAt': FieldValue.serverTimestamp(),
+    });
+
+    // find appointment by messageId
+    final apptQuery = await _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('appointments')
+        .where('messageId', isEqualTo: messageId)
+        .limit(1)
+        .get();
+
+    if (apptQuery.docs.isNotEmpty) {
+      final apptRef = apptQuery.docs.first.reference;
+      batch.update(apptRef, {
+        'status': 'cancelled',
+        'cancelledAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
+  }
+
+
+  /// Optional: Get pending appointment for a chat (for UI checks)
+  Future<Map<String, dynamic>?> getPendingAppointment(String chatId) async {
+    final query = await _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('appointments')
+        .where('requesterId', isEqualTo: _currentUserId)
+        .where('status', isEqualTo: 'pending')
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) return null;
+    return query.docs.first.data();
+  }
+
+  /// Doctor accepts appointment using messageId only
+  Future<void> acceptAppointment({
+    required String chatId,
+    required String messageId,
+  }) async {
+    final batch = _firestore.batch();
+
+    // 1. Update message status
+    final msgRef = _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId);
+
+    batch.update(msgRef, {
+      'status': 'accepted',
+      'acceptedAt': FieldValue.serverTimestamp(),
+    });
+
+    // 2. Find appointment by messageId
+    final apptQuery = await _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('appointments')
+        .where('messageId', isEqualTo: messageId)
+        .limit(1)
+        .get();
+
+    if (apptQuery.docs.isNotEmpty) {
+      final apptRef = apptQuery.docs.first.reference;
+      batch.update(apptRef, {
+        'status': 'accepted',
+        'acceptedAt': FieldValue.serverTimestamp(),
+        'doctorId': _currentUserId,
+      });
+    }
+
+    await batch.commit();
+  }
+
+  /// Doctor rejects appointment using messageId only
+  Future<void> rejectAppointment({
+    required String chatId,
+    required String messageId,
+  }) async {
+    final batch = _firestore.batch();
+
+    // 1. Update message status
+    final msgRef = _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId);
+
+    batch.update(msgRef, {
+      'status': 'rejected',
+      'rejectedAt': FieldValue.serverTimestamp(),
+    });
+
+    // 2. Find appointment by messageId
+    final apptQuery = await _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('appointments')
+        .where('messageId', isEqualTo: messageId)
+        .limit(1)
+        .get();
+
+    if (apptQuery.docs.isNotEmpty) {
+      final apptRef = apptQuery.docs.first.reference;
+      batch.update(apptRef, {
+        'status': 'rejected',
+        'rejectedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
+  }
+
+
 
   /// Reset unread count to 0 for current user when they open the chat
   Future<void> markChatAsRead(String chatId) async {

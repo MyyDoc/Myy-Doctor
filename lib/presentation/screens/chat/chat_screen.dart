@@ -29,13 +29,27 @@ class _ChatScreenState extends State<ChatScreen> {
   String _otherUserName = "Loading...";
   String _otherUserPhoto = '';
   String _status = "offline";
+  bool _hasSentAppointmentRequest = false;
 
   @override
   void initState() {
     super.initState();
     _loadChatInfo();
-    // Optional: mark as read when opening chat
+    if (widget.isFromTeleMed) {
+      _checkAndSendAppointmentRequest();
+    }
     _chatService.markChatAsRead(widget.chatId);
+  }
+
+  Future<void> _checkAndSendAppointmentRequest() async {
+    try {
+      await _chatService.sendAppointmentRequestMessage(widget.chatId);
+      setState(() => _hasSentAppointmentRequest = true);
+
+      _scrollToBottom();
+    } catch (e) {
+      debugPrint("Error sending appointment request: $e");
+    }
   }
 
   Future<void> _loadChatInfo() async {
@@ -145,57 +159,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // Telemedicine special banner (keep your existing design)
-          if (widget.isFromTeleMed)
-            Padding(
-              padding: const EdgeInsets.all(15.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  IntrinsicWidth(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE3EBF3),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(15.0),
-                            child: Text(
-                              "I want to book an appointment.\nWhen can I visit the clinic?",
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 50),
-                            height: 40,
-                            decoration: const BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.only(
-                                bottomLeft: Radius.circular(8),
-                              ),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                "Appointment Request",
-                                style: TextStyle(
-                                  color: Colors.yellow,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // ... keep your cancel button, read status, etc.
-                ],
-              ),
-            ),
-
           // Real-time messages list
           Expanded(
             child: StreamBuilder<List<Message>>(
@@ -217,20 +180,45 @@ class _ChatScreenState extends State<ChatScreen> {
                 });
 
                 return ListView.builder(
+
                   controller: _scrollController,
                   padding: const EdgeInsets.all(8),
-                  reverse: true, // Important: newest messages at bottom
+                  reverse: true,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
+
                     final message = messages[index];
                     final isMe = message.senderId == FirebaseAuth.instance.currentUser?.uid;
 
                     return MessageBubble(
+                      chatId: widget.chatId,
                       message: LocalMessageAdapter(
                         text: message.text,
                         isMe: isMe,
                         time: _formatTimestamp(message.createdAt),
                       ),
+                      type: message.type ?? 'text',
+                      status: message.status,          // NEW
+                      messageId: message.id,           // NEW - needed for cancel
+                      onCancel: (message.type == 'appointment_request' &&
+                          (message.status == 'pending' || message.status == null) &&
+                          isMe)
+                          ? () async {
+                        try {
+                          await _chatService.cancelAppointmentRequest(
+                            chatId: widget.chatId,
+                            messageId: message.id,
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Appointment request cancelled")),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Failed to cancel: $e")),
+                          );
+                        }
+                      }
+                          : null,
                     );
                   },
                 );

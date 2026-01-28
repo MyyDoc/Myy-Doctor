@@ -8,7 +8,8 @@ import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
 import 'package:myydoctor/repository/pic_post_repository.dart';
 
 class GlobalPostFeed extends StatefulWidget {
-  const GlobalPostFeed({super.key});
+  const GlobalPostFeed({super.key, required this.anotherProfile});
+  final String anotherProfile;
 
   @override
   State<GlobalPostFeed> createState() => _GlobalPostFeedState();
@@ -23,8 +24,11 @@ class _GlobalPostFeedState extends State<GlobalPostFeed>
   @override
   void initState() {
     super.initState();
+    final bool isAnotherProfile = widget.anotherProfile.isNotEmpty;
+
     globalUserPostFeed = PicPostRepository().getPostsStream(
-      useOwnerProfile: true,
+      useOwnerProfile: !isAnotherProfile,
+      anotherProfile: widget.anotherProfile,
     );
   }
 
@@ -35,7 +39,7 @@ class _GlobalPostFeedState extends State<GlobalPostFeed>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // REQUIRED for AutomaticKeepAlive
+    super.build(context);
 
     final textTheme = Theme.of(context).textTheme;
 
@@ -64,6 +68,7 @@ class _GlobalPostFeedState extends State<GlobalPostFeed>
               return BlocProvider(
                 create: (context) => PostCommentCubit(),
                 child: FeedContainerItem(
+                  caption: posts[index].caption,
                   isDoctor: posts[index].isOwnerDoctor,
                   isInitiallySaved: posts[index].isSaved,
                   textTheme: textTheme,

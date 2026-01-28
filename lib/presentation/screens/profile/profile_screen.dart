@@ -35,7 +35,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
-    with TickerProviderStateMixin { // ← Changed to TickerProviderStateMixin (allows multiple controllers)
+    with TickerProviderStateMixin {
 
   TabController? _tabController;
 
@@ -88,7 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void showPostCount() async {
-    postsCount = await getUserPostsCount(widget.userId ?? "");
+    postsCount = await getUserPostsCount(widget.userId ?? FirebaseAuth.instance.currentUser?.uid ?? "");
     if (mounted) setState(() {});
   }
 
@@ -442,7 +442,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               return TabBarView(
                 controller: _tabController,
                 children: [
-                  const GlobalPostFeed(),
+                  GlobalPostFeed(anotherProfile: widget.userId ?? "",),
                   if (widget.userId == null)
                     Column(
                       children: [
@@ -632,35 +632,39 @@ class _ProfileScreenState extends State<ProfileScreen>
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      user.fullName,
-                      style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    if (user.isVerified)
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8),
-                        child: SizedBox(
-                          height: 30,
-                          width: 40,
-                          child: Image(
-                            image: AssetImage("assets/images/8ad19fdbc58af4bd5b0a3f9441f03fe5c09755ca.png"),
-                            fit: BoxFit.contain,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        user.fullName,
+                        style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      if (user.isVerified)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 8),
+                          child: SizedBox(
+                            height: 30,
+                            width: 40,
+                            child: Image(
+                              image: AssetImage("assets/images/8ad19fdbc58af4bd5b0a3f9441f03fe5c09755ca.png"),
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-                Text("@${user.username}"),
-                if (user.bio?.isNotEmpty == true)
-                  Text(user.bio!, style: textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.bold)),
-              ],
+                    ],
+                  ),
+                  Text("@${user.username}"),
+                  if (user.bio?.isNotEmpty == true)
+                    Text(user.bio!, style: textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.bold)),
+                ],
+              ),
             ),
+            if (widget.userId != null)
             const SizedBox(width: 10),
+            if (widget.userId != null)
             Expanded(
               child: GestureDetector(
                 onTap: () async {

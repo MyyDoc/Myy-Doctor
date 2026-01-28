@@ -6,12 +6,11 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:myydoctor/data/posts/pic_post_model.dart';
 
 class PicPostRepository {
-  // Simple in-memory cache: userId → isDoctor
   static final Map<String, bool> _doctorCache = {};
 
-  /// Streams all posts (global feed) or only user's own posts (profile)
   Stream<List<PicPostModel>> getPostsStream({
     required bool useOwnerProfile,
+    required String anotherProfile,
   }) {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
@@ -19,22 +18,26 @@ class PicPostRepository {
     }
 
     final uid = currentUser.uid;
+    final targetUid = useOwnerProfile ? null : (anotherProfile.isNotEmpty ? anotherProfile : uid);
 
-    // Posts reference
-    final DatabaseReference postsRef = useOwnerProfile
-        ? FirebaseDatabase.instance.ref("posts")
-        : FirebaseDatabase.instance.ref("posts/$uid");
+    print("getPostsStream → useOwnerProfile: $useOwnerProfile, targetUid: $targetUid");
 
-    // Current user's saved posts
-    final DatabaseReference savedRef =
-    FirebaseDatabase.instance.ref("savedPosts/$uid");
+    final DatabaseReference postsRef;
+    if (useOwnerProfile) {
+      postsRef = FirebaseDatabase.instance.ref("posts");
+    } else if (targetUid != null && targetUid.isNotEmpty) {
+      postsRef = FirebaseDatabase.instance.ref("posts/$targetUid");
+    } else {
+      return Stream.value([]); // safety
+    }
+
+    final DatabaseReference savedRef = FirebaseDatabase.instance.ref("savedPosts/$uid");
 
     return savedRef.onValue.asyncExpand((savedEvent) {
-      // Build set of saved post IDs
       final Set<String> savedPostIds = {};
-      if (savedEvent.snapshot.value != null) {
-        final savedData = savedEvent.snapshot.value as Map;
-        savedPostIds.addAll(savedData.keys.map((key) => key.toString()));
+      final savedData = savedEvent.snapshot.value;
+      if (savedData != null && savedData is Map) {
+        savedPostIds.addAll(savedData.keys.cast<String>());
       }
 
       return postsRef.onValue.asyncMap((event) async {
@@ -44,23 +47,31 @@ class PicPostRepository {
         final List<PicPostModel> posts = [];
 
         if (useOwnerProfile) {
-          // ── GLOBAL FEED ── multiple users' posts
-          final usersMap = data as Map;
+          // Global: loop over all user IDs
+          final usersMap = data as Map<dynamic, dynamic>;
 
           for (final userEntry in usersMap.entries) {
             final String ownerId = userEntry.key as String;
             if (userEntry.value is! Map) continue;
 
-            // Get (and cache) whether this user is a doctor
             final bool isDoctor = await _getIsDoctor(ownerId);
-
-            final userPostsMap = userEntry.value as Map;
+            final userPostsMap = userEntry.value as Map<dynamic, dynamic>;
 
             for (final postEntry in userPostsMap.entries) {
               final String postId = postEntry.key as String;
               if (postEntry.value is! Map) continue;
 
-              final postMap = postEntry.value as Map;
+              final postMap = postEntry.value as Map<dynamic, dynamic>;
+
+              // Fetch username & profile pic from users/$ownerId (cached if possible)
+              String? name;
+              String? profileImageUrl;
+              final userSnap = await FirebaseDatabase.instance.ref('users/$ownerId').get();
+              if (userSnap.exists && userSnap.value is Map) {
+                final userData = userSnap.value as Map<dynamic, dynamic>;
+                name = userData['username'] as String?;
+                profileImageUrl = userData['profileImageUrl'] as String?;
+              }
 
               posts.add(PicPostModel(
                 postId: postId,
@@ -69,8 +80,8 @@ class PicPostRepository {
                 imageUrl: postMap['imageUrl']?.toString() ?? '',
                 likeCount: (postMap['likeCount'] as num?)?.toInt() ?? 0,
                 commentCount: (postMap['commentCount'] as num?)?.toInt() ?? 0,
-                name: postMap['username']?.toString(),
-                profileImageUrl: postMap['profileImageUrl']?.toString(),
+                name: name ?? postMap['username']?.toString(),
+                profileImageUrl: profileImageUrl ?? postMap['profileImageUrl']?.toString(),
                 createdAt: (postMap['createdAt'] as num?)?.toInt() ?? 0,
                 isSaved: savedPostIds.contains(postId),
                 isOwnerDoctor: isDoctor,
@@ -78,29 +89,38 @@ class PicPostRepository {
             }
           }
         } else {
-          // ── PROFILE FEED ── only current user's posts
-          final bool isCurrentUserDoctor = await _getIsDoctor(uid);
+          // Single user (own or another profile)
+          final bool isOwnerDoctor = await _getIsDoctor(targetUid!);
 
-          final postsMap = data as Map;
+          String? name;
+          String? profileImageUrl;
+          final userSnap = await FirebaseDatabase.instance.ref('users/$targetUid').get();
+          if (userSnap.exists && userSnap.value is Map) {
+            final userData = userSnap.value as Map<dynamic, dynamic>;
+            name = userData['username'] as String?;
+            profileImageUrl = userData['profileImageUrl'] as String?;
+          }
+
+          final postsMap = data as Map<dynamic, dynamic>;
 
           for (final postEntry in postsMap.entries) {
             final String postId = postEntry.key as String;
             if (postEntry.value is! Map) continue;
 
-            final postMap = postEntry.value as Map;
+            final postMap = postEntry.value as Map<dynamic, dynamic>;
 
             posts.add(PicPostModel(
               postId: postId,
-              ownerId: uid,
+              ownerId: targetUid,
               caption: postMap['caption']?.toString() ?? '',
               imageUrl: postMap['imageUrl']?.toString() ?? '',
               likeCount: (postMap['likeCount'] as num?)?.toInt() ?? 0,
               commentCount: (postMap['commentCount'] as num?)?.toInt() ?? 0,
-              name: postMap['username']?.toString(),
-              profileImageUrl: postMap['profileImageUrl']?.toString(),
+              name: name ?? postMap['username']?.toString(),
+              profileImageUrl: profileImageUrl ?? postMap['profileImageUrl']?.toString(),
               createdAt: (postMap['createdAt'] as num?)?.toInt() ?? 0,
               isSaved: savedPostIds.contains(postId),
-              isOwnerDoctor: isCurrentUserDoctor,
+              isOwnerDoctor: isOwnerDoctor,
             ));
           }
         }
@@ -108,6 +128,7 @@ class PicPostRepository {
         // Sort newest first
         posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
+        print("Emitting ${posts.length} posts for targetUid: $targetUid");
         return posts;
       });
     });
