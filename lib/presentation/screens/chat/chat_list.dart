@@ -165,6 +165,8 @@ class _ChatListScreenState extends State<ChatListScreen>
 
                     final chats = snapshot.data!;
 
+                    print("chats are $chats");
+
                     return ListView.builder(
                       itemCount: chats.length,
                       itemBuilder: (context, index) {
@@ -182,6 +184,8 @@ class _ChatListScreenState extends State<ChatListScreen>
                             final userData = userSnapshot.data!;
                             final lastMsg = chatRoom.lastMessage;
                             final isUnread = false; // TODO: implement real unread count
+
+                            print(userData['isDoctor']);
 
                             return ListTile(
                               leading: CircleAvatar(
@@ -214,7 +218,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                                 children: [
                                   if (chatRoom.lastMessageTime != null)
                                     Text(
-                                      _formatTime(chatRoom.lastMessageTime!.toDate()),
+                                      _formatTime(chatRoom.lastMessageTime!),
                                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                                     ),
 
@@ -255,6 +259,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                                     builder: (_) => ChatScreen(
                                       chatId: chatRoom.id,
                                       isFromTeleMed: false, // or detect based on context
+                                      isDoctor: userData['isDoctor'] == true,
                                     ),
                                   ),
                                 );
@@ -280,24 +285,36 @@ class _ChatListScreenState extends State<ChatListScreen>
     );
   }
 
-  /// Fetch other user's name, photo, etc.
   Future<Map<String, dynamic>> _getOtherUserInfo(ChatRoom chatRoom) async {
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final otherId = chatRoom.participants.firstWhere((id) => id != currentUid, orElse: () => '');
+    final otherId = chatRoom.participants.firstWhere(
+          (id) => id != currentUid,
+      orElse: () => '',
+    );
 
     if (otherId.isEmpty) return {'name': 'Unknown', 'initial': '?'};
 
-    final doc = await FirebaseFirestore.instance.collection('users').doc(otherId).get();
+    final doc =
+    await FirebaseFirestore.instance.collection('users').doc(otherId).get();
     if (!doc.exists) return {'name': 'User', 'initial': '?'};
 
     final data = doc.data()!;
+
+    // userPreference is an array
+    final List preferences = List.from(data['userPreference'] ?? []);
+
+    final bool isDoctor = preferences.contains("Doctor");
+
+    final String fullName = data['fullName'] ?? 'User';
+
     return {
-      'name': data['fullName'] ?? 'User',
+      'name': fullName,
       'photo': data['profilePicture'],
-      'initial': (data['fullName'] as String?)?.substring(0, 1).toUpperCase(),
-      'isDoctor': data['isDoctor'] == true,
+      'initial': fullName.isNotEmpty ? fullName[0].toUpperCase() : '?',
+      'isDoctor': isDoctor,
     };
   }
+
 
   String _formatTime(DateTime time) {
     final now = DateTime.now();

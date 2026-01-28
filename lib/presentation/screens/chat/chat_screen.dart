@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 
 import '../../../core/services/chat_service.dart';
 import '../../../data/chat/message_model.dart';
@@ -9,11 +10,13 @@ import '../../widgets/chat/chat_bubble_widget.dart';
 class ChatScreen extends StatefulWidget {
   final String chatId;           // Required - we pass this from previous screen
   final bool isFromTeleMed;
+  final bool isDoctor;
 
   const ChatScreen({
     super.key,
     required this.chatId,
     this.isFromTeleMed = false,
+    required this.isDoctor
   });
 
   @override
@@ -112,6 +115,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade200,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
         child: AppBar(
@@ -120,34 +124,37 @@ class _ChatScreenState extends State<ChatScreen> {
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.pop(context),
           ),
-          title: Row(
-            children: [
-              const CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.grey,
-                child: Icon(Icons.person, color: Colors.white),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _otherUserName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      "",
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ],
+          title: GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(userId: _otherUserId,),)),
+            child: Row(
+              children: [
+                const CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.grey,
+                  child: Icon(Icons.person, color: Colors.white),
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _otherUserName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        "",
+                        style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             IconButton(

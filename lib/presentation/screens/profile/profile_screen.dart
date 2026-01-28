@@ -672,7 +672,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ChatScreen(isFromTeleMed: true, chatId: chatId),
+                      builder: (_) => ChatScreen(isFromTeleMed: true, chatId: chatId, isDoctor: true,),
                     ),
                   );
                 },

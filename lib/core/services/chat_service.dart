@@ -1,17 +1,19 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 import '../../data/chat/chat_model.dart';
 import '../../data/chat/message_model.dart';
 
-/// Service class to handle all chat-related operations
+/// Service class to handle all chat-related operations — Realtime Database version
 class ChatService {
   static final ChatService _instance = ChatService._internal();
   factory ChatService() => _instance;
   ChatService._internal();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseDatabase _database = FirebaseDatabase.instance;
   String get _currentUserId => FirebaseAuth.instance.currentUser?.uid ?? '';
+
+  DatabaseReference get _chatsRef => _database.ref('chats');
 
   /// Generates a consistent chat room ID (smaller UID first)
   String _generateChatId(String userId1, String userId2) {
@@ -26,15 +28,15 @@ class ChatService {
     }
 
     final chatId = _generateChatId(_currentUserId, otherUserId);
-    final chatRef = _firestore.collection('chats').doc(chatId);
+    final chatRef = _chatsRef.child(chatId);
 
     final snapshot = await chatRef.get();
 
     if (!snapshot.exists) {
       await chatRef.set({
         'participants': [_currentUserId, otherUserId],
-        'createdAt': FieldValue.serverTimestamp(),
-        'lastMessageTime': FieldValue.serverTimestamp(),
+        'createdAt': ServerValue.timestamp,
+        'lastMessageTime': ServerValue.timestamp,
         'lastMessage': null,
         'unreadCount': {
           _currentUserId: 0,
@@ -53,331 +55,332 @@ class ChatService {
   }) async {
     if (text.trim().isEmpty) return;
 
-    final messageRef = _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .doc();
+    final messagesRef = _chatsRef.child('$chatId/messages');
+    final newMessageRef = messagesRef.push();
 
-    final batch = _firestore.batch();
+    final now = ServerValue.timestamp;
 
-    // Add the message
-    batch.set(messageRef, {
+    final messageData = {
       'text': text.trim(),
       'senderId': _currentUserId,
-      'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': now,
       'type': 'text',
       'readBy': [_currentUserId],
-    });
-
-    // Get current chat to find the other participant
-    final chatDoc = await _firestore.collection('chats').doc(chatId).get();
-    final participants = List<String>.from(chatDoc.data()?['participants'] ?? []);
-    final otherUid = participants.firstWhere(
-          (id) => id != _currentUserId,
-      orElse: () => '',
-    );
-
-    // Update metadata + increment unread for receiver
-    final updateData = {
-      'lastMessage': {
-        'text': text.trim().length > 80
-            ? '${text.trim().substring(0, 80)}...'
-            : text.trim(),
-        'senderId': _currentUserId,
-        'createdAt': FieldValue.serverTimestamp(),
-        'type': 'text',
-      },
-      'lastMessageTime': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
     };
 
-    if (otherUid.isNotEmpty) {
-      updateData['unreadCount.$otherUid'] = FieldValue.increment(1);
+    // We'll do two writes — RTDB doesn't have batches like Firestore
+    await newMessageRef.set(messageData);
+
+    // Get current chat to find the other participant
+    final chatSnapshot = await _chatsRef.child(chatId).get();
+    final participants = (chatSnapshot.value as Map?)?['participants'] as List?;
+    final otherUid = participants
+        ?.firstWhere((id) => id != _currentUserId, orElse: () => null);
+
+    if (otherUid == null) return;
+
+    final truncatedText = text.trim().length > 80
+        ? '${text.trim().substring(0, 80)}...'
+        : text.trim();
+
+    await _chatsRef.child(chatId).update({
+      'lastMessage': {
+        'text': truncatedText,
+        'senderId': _currentUserId,
+        'createdAt': now,
+        'type': 'text',
+      },
+      'lastMessageTime': now,
+      'updatedAt': now,
+      'unreadCount/$otherUid': ServerValue.increment(1),
+    });
+  }
+
+  /// Stream of messages in a chat (real-time) — newest first
+  Stream<List<Message>> getMessages(String chatId) {
+    final messagesRef = _chatsRef.child('$chatId/messages');
+
+    return messagesRef.orderByChild('createdAt').onValue.map((event) {
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data == null) return <Message>[];
+
+      final list = data.entries.map((entry) {
+        final key = entry.key as String;
+        final val = entry.value as Map<dynamic, dynamic>;
+        return Message.fromRealtime(key, val);
+      }).toList();
+
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // newest first
+      return list;
+    });
+  }
+
+  /// Stream of all user's active chats — ordered by lastMessageTime
+  Stream<List<ChatRoom>> getUserChats() {
+    if (_currentUserId.isEmpty) {
+      print("getUserChats → currentUserId is EMPTY → returning []");
+      return Stream.value([]);
     }
 
-    batch.update(_firestore.collection('chats').doc(chatId), updateData);
+    print("getUserChats → listening for UID: $_currentUserId");
 
-    await batch.commit();
-  }
+    return _chatsRef
+        .orderByChild('lastMessageTime')
+        .onValue
+        .map((event) {
+      final snap = event.snapshot;
 
-  /// Stream of messages in a chat (real-time)
-  Stream<List<Message>> getMessages(String chatId) {
-    return _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .orderBy('createdAt', descending: true)
-        .limit(50)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) => Message.fromFirestore(doc)).toList();
+      print("----------------------------------------");
+      print("getUserChats snapshot received");
+      print("Exists: ${snap.exists}");
+      print("Key: ${snap.key}");
+      print("Value type: ${snap.value.runtimeType}");
+
+      if (!snap.exists || snap.value == null) {
+        print("→ No data at /chats or empty snapshot");
+        return <ChatRoom>[];
+      }
+
+      final data = snap.value as Map<dynamic, dynamic>?;
+      if (data == null || data.isEmpty) {
+        print("→ data is null or empty map");
+        return <ChatRoom>[];
+      }
+
+      print("Found ${data.length} chat entries in /chats");
+
+      final List<ChatRoom> validChats = [];
+
+      data.forEach((dynamic key, dynamic value) {
+        final chatId = key as String?;
+        if (chatId == null) return;
+
+        final chatData = value as Map<dynamic, dynamic>?;
+        if (chatData == null) {
+          print("Chat $chatId → value is not a map");
+          return;
+        }
+
+        print("→ Processing chat: $chatId");
+
+        final participantsRaw = chatData['participants'];
+        print("  participants raw: $participantsRaw (type: ${participantsRaw.runtimeType})");
+
+        List<dynamic>? participants;
+        if (participantsRaw is List) {
+          participants = participantsRaw;
+        } else if (participantsRaw is Map) {
+          // sometimes people accidentally save as map
+          participants = participantsRaw.values.toList();
+          print("  → converted map participants to list");
+        } else {
+          print("  → participants is invalid type: ${participantsRaw.runtimeType}");
+          return;
+        }
+
+        final containsMe = participants.contains(_currentUserId);
+        print("  contains current user ($_currentUserId)? → $containsMe");
+
+        if (!containsMe) {
+          print("  → SKIPPING: current user not in participants");
+          return;
+        }
+
+        try {
+          final room = ChatRoom.fromRealtime(chatId, chatData);
+          validChats.add(room);
+          print("  → SUCCESS: parsed ChatRoom for $chatId");
+          print("     lastMessageTime: ${room.lastMessageTime}");
+          print("     unread for me: ${room.unreadCount[_currentUserId]}");
+        } catch (e, stack) {
+          print("  → ERROR parsing ChatRoom $chatId: $e");
+          print("     Stack: $stack");
+        }
+      });
+
+      print("Final valid chats count: ${validChats.length}");
+      print("----------------------------------------");
+
+      return validChats;
     });
   }
-
-  /// Stream of all user's active chats
-  Stream<List<ChatRoom>> getUserChats() {
-    if (_currentUserId.isEmpty) return Stream.value([]);
-
-    return _firestore
-        .collection('chats')
-        .where('participants', arrayContains: _currentUserId)
-        .orderBy('lastMessageTime', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) => ChatRoom.fromFirestore(doc)).toList();
-    });
-  }
-
-  // Inside ChatService class
 
   /// Send appointment request + create appointment record
   Future<void> sendAppointmentRequestMessage(String chatId) async {
     if (_currentUserId.isEmpty) return;
 
-    // 1. Check if there's already a pending appointment request from this user
-    final existingAppt = await _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('appointments')
-        .where('requesterId', isEqualTo: _currentUserId)
-        .where('status', isEqualTo: 'pending')
-        .limit(1)
-        .get();
+    // Check for existing pending request (client-side filter)
+    final apptsRef = _chatsRef.child('$chatId/appointments');
+    final apptsSnap = await apptsRef.get();
+    final appts = apptsSnap.value as Map?;
+    final hasPending = appts?.values.any((v) =>
+    (v as Map)['requesterId'] == _currentUserId &&
+        (v as Map)['status'] == 'pending') ??
+        false;
 
-    if (existingAppt.docs.isNotEmpty) {
-      // Already have a pending request → don't send again
-      return;
-    }
+    if (hasPending) return;
 
-    final batch = _firestore.batch();
+    final now = ServerValue.timestamp;
 
-    // 2. Create the message
-    final messageRef = _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .doc();
+    final messagesRef = _chatsRef.child('$chatId/messages');
+    final newMsgRef = messagesRef.push();
 
     const appointmentText = "I want to book an appointment.\nWhen can I visit the clinic?";
 
-    batch.set(messageRef, {
+    await newMsgRef.set({
       'text': appointmentText,
       'senderId': _currentUserId,
-      'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': now,
       'type': 'appointment_request',
       'readBy': [_currentUserId],
-      'status': 'pending', // also store status in message for quick UI read
+      'status': 'pending',
     });
 
-    // 3. Create appointment record
-    final apptRef = _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('appointments')
-        .doc();
-
-    batch.set(apptRef, {
+    final apptRef = apptsRef.push();
+    await apptRef.set({
       'requesterId': _currentUserId,
       'status': 'pending',
-      'createdAt': FieldValue.serverTimestamp(),
-      'messageId': messageRef.id,
+      'createdAt': now,
+      'messageId': newMsgRef.key,
     });
 
-    // 4. Update chat metadata
-    final chatDoc = await _firestore.collection('chats').doc(chatId).get();
-    final participants = List<String>.from(chatDoc.data()?['participants'] ?? []);
-    final otherUid = participants.firstWhere(
-          (id) => id != _currentUserId,
-      orElse: () => '',
-    );
+    // Update chat metadata
+    final chatSnap = await _chatsRef.child(chatId).get();
+    final participants = (chatSnap.value as Map?)?['participants'] as List?;
+    final otherUid = participants?.firstWhere((id) => id != _currentUserId, orElse: () => null);
 
-    final updateData = {
+    if (otherUid == null) return;
+
+    await _chatsRef.child(chatId).update({
       'lastMessage': {
         'text': 'Appointment Request',
         'senderId': _currentUserId,
-        'createdAt': FieldValue.serverTimestamp(),
+        'createdAt': now,
         'type': 'appointment_request',
       },
-      'lastMessageTime': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
-
-    if (otherUid.isNotEmpty) {
-      updateData['unreadCount.$otherUid'] = FieldValue.increment(1);
-    }
-
-    batch.update(_firestore.collection('chats').doc(chatId), updateData);
-
-    await batch.commit();
+      'lastMessageTime': now,
+      'updatedAt': now,
+      'unreadCount/$otherUid': ServerValue.increment(1),
+    });
   }
+
   Future<void> cancelAppointmentRequest({
     required String chatId,
     required String messageId,
   }) async {
-    final batch = _firestore.batch();
+    final now = ServerValue.timestamp;
 
-    // update message
-    final msgRef = _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .doc(messageId);
-
-    batch.update(msgRef, {
+    await _chatsRef.child('$chatId/messages/$messageId').update({
       'status': 'cancelled',
-      'cancelledAt': FieldValue.serverTimestamp(),
+      'cancelledAt': now,
     });
 
-    // find appointment by messageId
-    final apptQuery = await _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('appointments')
-        .where('messageId', isEqualTo: messageId)
-        .limit(1)
-        .get();
+    final apptsSnap = await _chatsRef.child('$chatId/appointments').get();
+    final appts = apptsSnap.value as Map?;
+    String? apptKey;
 
-    if (apptQuery.docs.isNotEmpty) {
-      final apptRef = apptQuery.docs.first.reference;
-      batch.update(apptRef, {
+    appts?.forEach((key, value) {
+      if ((value as Map)['messageId'] == messageId) {
+        apptKey = key;
+      }
+    });
+
+    if (apptKey != null) {
+      await _chatsRef.child('$chatId/appointments/$apptKey').update({
         'status': 'cancelled',
-        'cancelledAt': FieldValue.serverTimestamp(),
+        'cancelledAt': now,
       });
     }
-
-    await batch.commit();
   }
 
-
-  /// Optional: Get pending appointment for a chat (for UI checks)
   Future<Map<String, dynamic>?> getPendingAppointment(String chatId) async {
-    final query = await _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('appointments')
-        .where('requesterId', isEqualTo: _currentUserId)
-        .where('status', isEqualTo: 'pending')
-        .limit(1)
-        .get();
+    final apptsSnap = await _chatsRef.child('$chatId/appointments').get();
+    final appts = apptsSnap.value as Map?;
 
-    if (query.docs.isEmpty) return null;
-    return query.docs.first.data();
+    if (appts == null) return null;
+
+    for (final entry in appts.entries) {
+      final val = entry.value as Map;
+      if (val['requesterId'] == _currentUserId && val['status'] == 'pending') {
+        return {
+          ...val,
+          'id': entry.key,
+        };
+      }
+    }
+    return null;
   }
 
-  /// Doctor accepts appointment using messageId only
   Future<void> acceptAppointment({
     required String chatId,
     required String messageId,
   }) async {
-    final batch = _firestore.batch();
+    final now = ServerValue.timestamp;
 
-    // 1. Update message status
-    final msgRef = _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .doc(messageId);
-
-    batch.update(msgRef, {
+    await _chatsRef.child('$chatId/messages/$messageId').update({
       'status': 'accepted',
-      'acceptedAt': FieldValue.serverTimestamp(),
+      'acceptedAt': now,
     });
 
-    // 2. Find appointment by messageId
-    final apptQuery = await _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('appointments')
-        .where('messageId', isEqualTo: messageId)
-        .limit(1)
-        .get();
+    final apptsSnap = await _chatsRef.child('$chatId/appointments').get();
+    String? apptKey;
 
-    if (apptQuery.docs.isNotEmpty) {
-      final apptRef = apptQuery.docs.first.reference;
-      batch.update(apptRef, {
+    (apptsSnap.value as Map?)?.forEach((key, val) {
+      if ((val as Map)['messageId'] == messageId) apptKey = key;
+    });
+
+    if (apptKey != null) {
+      await _chatsRef.child('$chatId/appointments/$apptKey').update({
         'status': 'accepted',
-        'acceptedAt': FieldValue.serverTimestamp(),
+        'acceptedAt': now,
         'doctorId': _currentUserId,
       });
     }
-
-    await batch.commit();
   }
 
-  /// Doctor rejects appointment using messageId only
   Future<void> rejectAppointment({
     required String chatId,
     required String messageId,
   }) async {
-    final batch = _firestore.batch();
+    final now = ServerValue.timestamp;
 
-    // 1. Update message status
-    final msgRef = _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .doc(messageId);
-
-    batch.update(msgRef, {
+    await _chatsRef.child('$chatId/messages/$messageId').update({
       'status': 'rejected',
-      'rejectedAt': FieldValue.serverTimestamp(),
+      'rejectedAt': now,
     });
 
-    // 2. Find appointment by messageId
-    final apptQuery = await _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('appointments')
-        .where('messageId', isEqualTo: messageId)
-        .limit(1)
-        .get();
+    final apptsSnap = await _chatsRef.child('$chatId/appointments').get();
+    String? apptKey;
 
-    if (apptQuery.docs.isNotEmpty) {
-      final apptRef = apptQuery.docs.first.reference;
-      batch.update(apptRef, {
+    (apptsSnap.value as Map?)?.forEach((key, val) {
+      if ((val as Map)['messageId'] == messageId) apptKey = key;
+    });
+
+    if (apptKey != null) {
+      await _chatsRef.child('$chatId/appointments/$apptKey').update({
         'status': 'rejected',
-        'rejectedAt': FieldValue.serverTimestamp(),
+        'rejectedAt': now,
       });
     }
-
-    await batch.commit();
   }
-
-
 
   /// Reset unread count to 0 for current user when they open the chat
   Future<void> markChatAsRead(String chatId) async {
     if (_currentUserId.isEmpty) return;
-
-    await _firestore.collection('chats').doc(chatId).update({
-      'unreadCount.$_currentUserId': 0,
-    });
+    await _chatsRef.child('$chatId/unreadCount/$_currentUserId').set(0);
   }
 
-  /// Get the other participant in a chat room
   Future<String?> getOtherParticipant(String chatId) async {
-    final doc = await _firestore.collection('chats').doc(chatId).get();
-    if (!doc.exists) return null;
-
-    final participants = List<String>.from(doc.data()?['participants'] ?? []);
-    return participants.firstWhere(
-          (id) => id != _currentUserId,
-      orElse: () => '',
-    );
+    final snap = await _chatsRef.child('$chatId/participants').get();
+    final list = snap.value as List?;
+    if (list == null) return null;
+    return list.firstWhere((id) => id != _currentUserId, orElse: () => null);
   }
 
-  /// Helper: Check if current user has unread messages in this chat
   Future<bool> hasUnreadMessages(String chatId) async {
     if (_currentUserId.isEmpty) return false;
-
-    final doc = await _firestore.collection('chats').doc(chatId).get();
-    if (!doc.exists) return false;
-
-    final unreadMap = doc.data()?['unreadCount'] as Map<String, dynamic>?;
-    if (unreadMap == null) return false;
-
-    final count = (unreadMap[_currentUserId] as num?)?.toInt() ?? 0;
+    final snap = await _chatsRef.child('$chatId/unreadCount/$_currentUserId').get();
+    final count = (snap.value as num?)?.toInt() ?? 0;
     return count > 0;
   }
 }

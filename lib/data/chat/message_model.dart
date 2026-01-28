@@ -1,47 +1,91 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // only if you still need both versions
 
 class Message {
   final String id;
   final String text;
   final String senderId;
-  final DateTime? createdAt;
-  final String type;
+  final DateTime createdAt;
+  final String type; // 'text', 'appointment_request', etc.
+  final String? status; // 'pending', 'accepted', 'rejected', 'cancelled'
+  final DateTime? acceptedAt;
+  final DateTime? rejectedAt;
+  final DateTime? cancelledAt;
   final List<String> readBy;
-  final String? status;          // NEW: 'pending', 'cancelled', 'accepted', etc.
+
+  // Add other fields you might have (imageUrl, appointmentId, etc.)
 
   Message({
     required this.id,
     required this.text,
     required this.senderId,
-    this.createdAt,
+    required this.createdAt,
     required this.type,
-    required this.readBy,
     this.status,
+    this.acceptedAt,
+    this.rejectedAt,
+    this.cancelledAt,
+    this.readBy = const [],
   });
 
+  // Original Firestore factory (keep if you want dual support)
   factory Message.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
+    final createdAt = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
 
     return Message(
       id: doc.id,
-      text: data['text'] ?? '',
-      senderId: data['senderId'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
-      type: data['type'] ?? 'text',
+      text: data['text'] as String? ?? '',
+      senderId: data['senderId'] as String? ?? '',
+      createdAt: createdAt,
+      type: data['type'] as String? ?? 'text',
+      status: data['status'] as String?,
+      acceptedAt: (data['acceptedAt'] as Timestamp?)?.toDate(),
+      rejectedAt: (data['rejectedAt'] as Timestamp?)?.toDate(),
+      cancelledAt: (data['cancelledAt'] as Timestamp?)?.toDate(),
       readBy: List<String>.from(data['readBy'] ?? []),
-      status: data['status'] as String?,  // ← read status field
     );
   }
 
-  // Optional: toMap method if you ever need to write messages from client
+  // New: Realtime Database factory
+  factory Message.fromRealtime(String id, Map<dynamic, dynamic> data) {
+    final safeData = Map<String, dynamic>.from(data);
+
+    final createdAtMillis = (safeData['createdAt'] as num?)?.toInt() ?? 0;
+    final acceptedAtMillis = (safeData['acceptedAt'] as num?)?.toInt();
+    final rejectedAtMillis = (safeData['rejectedAt'] as num?)?.toInt();
+    final cancelledAtMillis = (safeData['cancelledAt'] as num?)?.toInt();
+
+    return Message(
+      id: id,
+      text: safeData['text'] as String? ?? '',
+      senderId: safeData['senderId'] as String? ?? '',
+      createdAt: DateTime.fromMillisecondsSinceEpoch(createdAtMillis),
+      type: safeData['type'] as String? ?? 'text',
+      status: safeData['status'] as String?,
+      acceptedAt: acceptedAtMillis != null && acceptedAtMillis > 0
+          ? DateTime.fromMillisecondsSinceEpoch(acceptedAtMillis)
+          : null,
+      rejectedAt: rejectedAtMillis != null && rejectedAtMillis > 0
+          ? DateTime.fromMillisecondsSinceEpoch(rejectedAtMillis)
+          : null,
+      cancelledAt: cancelledAtMillis != null && cancelledAtMillis > 0
+          ? DateTime.fromMillisecondsSinceEpoch(cancelledAtMillis)
+          : null,
+      readBy: List<String>.from(safeData['readBy'] ?? []),
+    );
+  }
+  // Optional: toJson / toMap if you need to send data
   Map<String, dynamic> toMap() {
     return {
       'text': text,
       'senderId': senderId,
-      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
+      'createdAt': createdAt.millisecondsSinceEpoch,
       'type': type,
-      'readBy': readBy,
       'status': status,
+      if (acceptedAt != null) 'acceptedAt': acceptedAt!.millisecondsSinceEpoch,
+      if (rejectedAt != null) 'rejectedAt': rejectedAt!.millisecondsSinceEpoch,
+      if (cancelledAt != null) 'cancelledAt': cancelledAt!.millisecondsSinceEpoch,
+      'readBy': readBy,
     };
   }
 }
