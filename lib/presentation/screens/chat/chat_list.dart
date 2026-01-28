@@ -2,11 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../../../core/services/chat_service.dart'; // adjust path
-import '../../../data/chat/chat_model.dart';       // your ChatRoom model
+import '../../../core/services/chat_service.dart';
+import '../../../data/chat/chat_model.dart';
 import '../../widgets/chat/call_list_widget.dart';
-import '../../widgets/chat/chat_list_widget.dart'; // if you want to keep custom tile
-import '../../widgets/home/story_circle.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -20,17 +18,27 @@ class _ChatListScreenState extends State<ChatListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool searchClicked = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   final ChatService _chatService = ChatService();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.trim().toLowerCase();
+      });
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -57,7 +65,12 @@ class _ChatListScreenState extends State<ChatListScreen>
           if (searchClicked)
             IconButton(
               icon: const Icon(Icons.close, color: Colors.white, size: 30),
-              onPressed: () => setState(() => searchClicked = false),
+              onPressed: () {
+                setState(() {
+                  searchClicked = false;
+                  _searchController.clear();
+                });
+              },
             )
           else
             IconButton(
@@ -87,12 +100,12 @@ class _ChatListScreenState extends State<ChatListScreen>
             ),
           ),
 
-          // Search bar (keep your design)
+          // Search bar
           if (searchClicked)
             Container(
               color: Colors.white,
               child: Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(12.0),
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -107,9 +120,11 @@ class _ChatListScreenState extends State<ChatListScreen>
                     ),
                     borderRadius: BorderRadius.circular(25),
                   ),
-                  child: const TextField(
-                    decoration: InputDecoration(
-                      hintText: 'SEARCH MESSAGES',
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Search messages or people',
                       hintStyle: TextStyle(
                         color: Colors.grey,
                         fontSize: 14,
@@ -124,34 +139,11 @@ class _ChatListScreenState extends State<ChatListScreen>
               ),
             ),
 
-          // Visitors / recent stories (optional - you can keep or remove)
-          if (searchClicked)
-            Padding(
-              padding: const EdgeInsets.only(left: 15, top: 10),
-              child: Text("Visitors", style: textTheme.titleMedium),
-            ),
-          if (searchClicked)
-            SizedBox(
-              height: 130,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                scrollDirection: Axis.horizontal,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemCount: 8, // ← can be dynamic later
-                itemBuilder: (_, index) => StoryCircleItem(
-                  isFromProfile: false,
-                  textTheme: textTheme,
-                  index: 0,
-                ),
-              ),
-            ),
-
-          // Real chat list
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                // Chats Tab - REAL DATA
+                // Chats Tab with search
                 StreamBuilder<List<ChatRoom>>(
                   stream: _chatService.getUserChats(),
                   builder: (context, snapshot) {
@@ -159,13 +151,24 @@ class _ChatListScreenState extends State<ChatListScreen>
                       return const Center(child: CircularProgressIndicator());
                     }
 
+                    if (snapshot.hasError) {
+                      return Center(child: Text("Error: ${snapshot.error}"));
+                    }
+
                     if (!snapshot.hasData || snapshot.data!.isEmpty) {
                       return const Center(child: Text("No conversations yet"));
                     }
 
-                    final chats = snapshot.data!;
-
-                    print("chats are $chats");
+                    // Filter chats based on search query
+                    List<ChatRoom> chats = snapshot.data!;
+                    if (_searchQuery.isNotEmpty) {
+                      chats = chats.where((chat) {
+                        // We'll resolve the other user name in the builder anyway
+                        // For simplicity → filter after name is loaded (or pre-fetch if needed)
+                        // Here we show all and let ListTile decide visibility
+                        return true; // see below in ListTile
+                      }).toList();
+                    }
 
                     return ListView.builder(
                       itemCount: chats.length,
@@ -182,10 +185,16 @@ class _ChatListScreenState extends State<ChatListScreen>
                             }
 
                             final userData = userSnapshot.data!;
-                            final lastMsg = chatRoom.lastMessage;
-                            final isUnread = false; // TODO: implement real unread count
+                            final name = (userData['name'] ?? '').toLowerCase();
 
-                            print(userData['isDoctor']);
+                            // Hide item if searching and name doesn't match
+                            if (_searchQuery.isNotEmpty && !name.contains(_searchQuery)) {
+                              return const SizedBox.shrink();
+                            }
+
+                            final lastMsg = chatRoom.lastMessage;
+                            final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+                            final unreadCount = chatRoom.unreadCount[myUid] ?? 0;
 
                             return ListTile(
                               leading: CircleAvatar(
@@ -204,11 +213,11 @@ class _ChatListScreenState extends State<ChatListScreen>
                                       ? const Color(0xFFD4AF37)
                                       : Colors.black,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 18,
+                                  fontSize: 20,
                                 ),
                               ),
                               subtitle: Text(
-                                lastMsg?['text'] ?? 'Start a conversation',
+                                lastMsg?['text']?.toString() ?? 'Start a conversation',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -219,37 +228,31 @@ class _ChatListScreenState extends State<ChatListScreen>
                                   if (chatRoom.lastMessageTime != null)
                                     Text(
                                       _formatTime(chatRoom.lastMessageTime!),
-                                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
                                     ),
-
-                                  StreamBuilder<DocumentSnapshot>(
-                                    stream: FirebaseFirestore.instance
-                                        .collection('chats')
-                                        .doc(chatRoom.id)
-                                        .snapshots(),
-                                    builder: (context, snapshot) {
-                                      if (!snapshot.hasData) return const SizedBox.shrink();
-
-                                      final data = snapshot.data!.data() as Map<String, dynamic>?;
-                                      final unreadMap = data?['unreadCount'] as Map<String, dynamic>?;
-                                      final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-                                      final unread = (unreadMap?[currentUid] as num?)?.toInt() ?? 0;
-
-                                      return AnimatedOpacity(
-                                        opacity: unread > 0 ? 1.0 : 0.0,
-                                        duration: const Duration(milliseconds: 400),
-                                        child: Container(
-                                          margin: const EdgeInsets.only(top: 4),
-                                          width: 12,
-                                          height: 12,
-                                          decoration: const BoxDecoration(
-                                            color: Color(0xFF25D366),
-                                            shape: BoxShape.circle,
+                                  if (unreadCount > 0)
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 4),
+                                      width: 20,
+                                      height: 20,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF25D366),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '$unreadCount',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                      );
-                                    },
-                                  ),
+                                      ),
+                                    ),
                                 ],
                               ),
                               onTap: () {
@@ -258,7 +261,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                                   MaterialPageRoute(
                                     builder: (_) => ChatScreen(
                                       chatId: chatRoom.id,
-                                      isFromTeleMed: false, // or detect based on context
+                                      isFromTeleMed: false,
                                       isDoctor: userData['isDoctor'] == true,
                                     ),
                                   ),
@@ -276,7 +279,8 @@ class _ChatListScreenState extends State<ChatListScreen>
                 const Center(child: Text("Groups feature coming soon")),
 
                 // Calls Tab
-                CallsScreen(),
+                // CallsScreen(),
+                const Center(child: Text("Calls feature coming soon")),
               ],
             ),
           ),
@@ -292,19 +296,18 @@ class _ChatListScreenState extends State<ChatListScreen>
       orElse: () => '',
     );
 
-    if (otherId.isEmpty) return {'name': 'Unknown', 'initial': '?'};
+    if (otherId.isEmpty) {
+      return {'name': 'Unknown', 'initial': '?'};
+    }
 
-    final doc =
-    await FirebaseFirestore.instance.collection('users').doc(otherId).get();
-    if (!doc.exists) return {'name': 'User', 'initial': '?'};
+    final doc = await FirebaseFirestore.instance.collection('users').doc(otherId).get();
+    if (!doc.exists) {
+      return {'name': 'User', 'initial': '?'};
+    }
 
     final data = doc.data()!;
-
-    // userPreference is an array
     final List preferences = List.from(data['userPreference'] ?? []);
-
     final bool isDoctor = preferences.contains("Doctor");
-
     final String fullName = data['fullName'] ?? 'User';
 
     return {
@@ -314,7 +317,6 @@ class _ChatListScreenState extends State<ChatListScreen>
       'isDoctor': isDoctor,
     };
   }
-
 
   String _formatTime(DateTime time) {
     final now = DateTime.now();
