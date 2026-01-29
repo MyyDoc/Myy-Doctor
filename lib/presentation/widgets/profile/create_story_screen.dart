@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:vs_story_designer/vs_story_designer.dart';
 import 'package:provider/provider.dart';
+import 'package:vs_story_designer/vs_story_designer.dart';
 
 import '../../screens/profile/story_view/bloc/upload_story_cubit/upload_story_cubit.dart';
 
@@ -27,7 +27,7 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // App Icon/Logo
+            // Logo
             Container(
               width: 120,
               height: 120,
@@ -58,7 +58,6 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
             ),
             const SizedBox(height: 40),
 
-            // Title
             const Text(
               'Share Your Moment',
               style: TextStyle(
@@ -69,7 +68,6 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
             ),
             const SizedBox(height: 10),
 
-            // Subtitle
             Text(
               'Create amazing stories with photos, text & drawings',
               textAlign: TextAlign.center,
@@ -85,7 +83,7 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
               onPressed: () async {
                 final ImagePicker picker = ImagePicker();
 
-                // First, show bottom sheet: Camera or Gallery?
+                // Pick source
                 final String? source = await showModalBottomSheet<String>(
                   context: context,
                   backgroundColor: Colors.grey[900],
@@ -98,12 +96,18 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
                       children: [
                         ListTile(
                           leading: const Icon(Icons.camera_alt, color: Colors.white),
-                          title: const Text('Take Photo', style: TextStyle(color: Colors.white)),
+                          title: const Text(
+                            'Take Photo',
+                            style: TextStyle(color: Colors.white),
+                          ),
                           onTap: () => Navigator.pop(context, 'camera'),
                         ),
                         ListTile(
                           leading: const Icon(Icons.photo_library, color: Colors.white),
-                          title: const Text('Choose from Gallery', style: TextStyle(color: Colors.white)),
+                          title: const Text(
+                            'Choose from Gallery',
+                            style: TextStyle(color: Colors.white),
+                          ),
                           onTap: () => Navigator.pop(context, 'gallery'),
                         ),
                         const SizedBox(height: 10),
@@ -112,82 +116,93 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
                   ),
                 );
 
-                if (source == null) return; // User canceled
+                if (source == null) return;
 
                 XFile? pickedFile;
-
                 if (source == 'camera') {
                   pickedFile = await picker.pickImage(source: ImageSource.camera);
                 } else {
                   pickedFile = await picker.pickImage(source: ImageSource.gallery);
                 }
 
-                if (pickedFile == null) return; // User didn't pick anything
+                if (pickedFile == null) return;
 
-                // Now open VSStoryDesigner with the selected/taken image pre-loaded
-                if (!mounted) return;
-
-                Navigator.push(
+                // Open Story Designer
+                final editedFilePath = await Navigator.push<String>(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => VSStoryDesigner(
-                      // Important: Pass the file path to pre-load the image
+                    builder: (_) => VSStoryDesigner(
                       mediaPath: pickedFile!.path,
-
                       centerText: "Edit your story",
-
                       middleBottomWidget: const SizedBox(),
-
                       galleryThumbnailQuality: 200,
-
                       fontFamilyList: [
                         FontType.roboto,
                         FontType.notoSansGujarati,
                         FontType.dancingScript,
                         FontType.pacifico,
                       ],
-
                       colorList: const [
-                        Colors.white, Colors.black, Colors.red, Colors.orange,
-                        Colors.yellow, Colors.green, Colors.blue, Colors.purple,
-                        Colors.pink, Colors.brown, Colors.grey,
+                        Colors.white,
+                        Colors.black,
+                        Colors.red,
+                        Colors.orange,
+                        Colors.yellow,
+                        Colors.green,
+                        Colors.blue,
+                        Colors.purple,
+                        Colors.pink,
+                        Colors.brown,
+                        Colors.grey,
                       ],
-
-                      onDone: (editedFile) async {
-                        final cubit = context.read<UploadStoryCubit>();
-                        await cubit.uploadStory(editedFilePath: editedFile);
-
-                        if (cubit.state is UploadStorySuccess) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Story uploaded successfully!'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-
-                          Navigator.pop(context, "success");
-                        } else if (cubit.state is UploadStoryError) {
-                          final errorState = cubit.state as UploadStoryError;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error: ${errorState.error}'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-
-                        Navigator.pop(context);
+                      // IMPORTANT: close designer instantly
+                      onDone: (editedFile) {
+                        Navigator.pop(context, editedFile);
                       },
                     ),
                   ),
                 );
+
+                if (editedFilePath == null) return;
+
+                // Show loader instantly
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+
+                final cubit = context.read<UploadStoryCubit>();
+                await cubit.uploadStory(editedFilePath: editedFilePath);
+
+                // Remove loader
+                Navigator.pop(context);
+
+                if (cubit.state is UploadStorySuccess) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Story uploaded successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+
+                  // Return success to previous screen
+                  Navigator.pop(context, "success");
+                } else if (cubit.state is UploadStoryError) {
+                  final errorState = cubit.state as UploadStoryError;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(errorState.error),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.purple,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 50,
-                  vertical: 18,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 18),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -197,14 +212,14 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: const [
-                  Icon(Icons.add_circle_outline, size: 28, color: Colors.white,),
+                  Icon(Icons.add_circle_outline, size: 28, color: Colors.white),
                   SizedBox(width: 12),
                   Text(
                     'Create Story',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white
+                      color: Colors.white,
                     ),
                   ),
                 ],
@@ -212,16 +227,14 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
             ),
             const SizedBox(height: 20),
 
-            // Features List
+            // Feature Box
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 40),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.grey.shade900.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(15),
-                border: Border.all(
-                  color: Colors.grey.shade800,
-                ),
+                border: Border.all(color: Colors.grey.shade800),
               ),
               child: Column(
                 children: [

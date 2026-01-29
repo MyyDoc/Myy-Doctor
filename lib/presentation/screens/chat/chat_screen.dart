@@ -125,7 +125,7 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           title: GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(userId: _otherUserId,),)),
+            onTap: widget.isDoctor ? () => Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(userId: _otherUserId,),)) : null,
             child: Row(
               children: [
                 const CircleAvatar(

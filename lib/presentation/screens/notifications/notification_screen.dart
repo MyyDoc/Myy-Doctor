@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/data/notification/app_notification_model.dart';
+import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
 import 'package:myydoctor/presentation/screens/notifications/cubit/notification_cubit.dart';
 
 class NotificationsScreen extends StatelessWidget {
@@ -112,6 +113,8 @@ class _NotificationTile extends StatelessWidget {
         context
             .read<NotificationCubit>()
             .markAsRead(notification.id);
+        
+        Navigator.push(context, MaterialPageRoute(builder: (context) => ChatScreen(chatId: notification.entityId ?? "", isDoctor: false),));
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
