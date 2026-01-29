@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bloc/bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:myydoctor/data/notification/app_notification_model.dart';
@@ -11,6 +12,9 @@ class NotificationCubit extends Cubit<NotificationState> {
   NotificationCubit() : super(NotificationInitial());
 
   StreamSubscription? _subscription;
+
+  /// 🔒 In-memory cache: senderId → senderName
+  final Map<String, String> _senderNameCache = {};
 
   void listenNotifications() {
     emit(NotificationLoading());
@@ -26,7 +30,7 @@ class NotificationCubit extends Cubit<NotificationState> {
         .orderByChild('createdAt');
 
     _subscription = ref.onValue.listen(
-      (event) {
+      (event) async {
         final data = event.snapshot.value;
 
         if (data == null) {
@@ -36,6 +40,7 @@ class NotificationCubit extends Cubit<NotificationState> {
 
         try {
           final map = Map<String, dynamic>.from(data as Map);
+
           final notifications =
               map.entries
                   .map(
@@ -46,9 +51,21 @@ class NotificationCubit extends Cubit<NotificationState> {
                   )
                   .toList();
 
-          notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          notifications.sort((a, b) {
+            final aTime = a.createdAt;
+            final bTime = b.createdAt;
+            return bTime.compareTo(aTime); // newest first
+          });
 
-          emit(NotificationLoaded(notifications));
+          // 🔽 Fetch only missing sender names
+          await _fetchMissingSenderNames(notifications);
+
+          emit(
+            NotificationLoaded(
+              notifications,
+              Map<String, String>.from(_senderNameCache),
+            ),
+          );
         } catch (e) {
           emit(const NotificationError("Failed to parse notifications"));
         }
@@ -57,6 +74,36 @@ class NotificationCubit extends Cubit<NotificationState> {
         emit(NotificationError(error.toString()));
       },
     );
+  }
+
+  /// 🔁 Fetch ONLY what is missing, ONCE
+  Future<void> _fetchMissingSenderNames(
+    List<AppNotificationModel> notifications,
+  ) async {
+    final firestore = FirebaseFirestore.instance;
+
+    // unique senderIds from notifications
+    final senderIds = notifications.map((n) => n.senderId).toSet();
+
+    for (final senderId in senderIds) {
+      // already cached → skip
+      if (_senderNameCache.containsKey(senderId)) continue;
+
+      try {
+        final doc = await firestore.collection('users').doc(senderId).get();
+
+        if (doc.exists) {
+          final data = doc.data();
+          final name = data?['fullName'] as String?;
+
+          if (name != null) {
+            _senderNameCache[senderId] = name;
+          }
+        }
+      } catch (_) {
+        // silent fail → UI fallback handles it
+      }
+    }
   }
 
   Future<void> markAsRead(String notificationId) async {

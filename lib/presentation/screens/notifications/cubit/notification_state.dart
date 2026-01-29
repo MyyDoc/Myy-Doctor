@@ -12,7 +12,12 @@ class NotificationEmpty extends NotificationState {}
 
 class NotificationLoaded extends NotificationState {
   final List<AppNotificationModel> notifications;
-  const NotificationLoaded(this.notifications);
+  final Map<String, String> senderNames; // 🔥 NEW (external enrichment)
+
+  const NotificationLoaded(
+    this.notifications,
+    this.senderNames,
+  );
 }
 
 class NotificationError extends NotificationState {
