@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:myydoctor/services/notification.dart';
 
 import '../../data/chat/chat_model.dart';
 import '../../data/chat/message_model.dart';
@@ -206,63 +207,80 @@ class ChatService {
   }
 
   /// Send appointment request + create appointment record
-  Future<void> sendAppointmentRequestMessage(String chatId) async {
-    if (_currentUserId.isEmpty) return;
+Future<void> sendAppointmentRequestMessage(String chatId) async {
+  if (_currentUserId.isEmpty) return;
 
-    // Check for existing pending request (client-side filter)
-    final apptsRef = _chatsRef.child('$chatId/appointments');
-    final apptsSnap = await apptsRef.get();
-    final appts = apptsSnap.value as Map?;
-    final hasPending = appts?.values.any((v) =>
-    (v as Map)['requesterId'] == _currentUserId &&
-        (v as Map)['status'] == 'pending') ??
-        false;
+  // Check for existing pending request (client-side filter)
+  final apptsRef = _chatsRef.child('$chatId/appointments');
+  final apptsSnap = await apptsRef.get();
+  final appts = apptsSnap.value as Map?;
+  final hasPending =
+      appts?.values.any((v) =>
+          (v as Map)['requesterId'] == _currentUserId &&
+          (v as Map)['status'] == 'pending') ??
+      false;
 
-    if (hasPending) return;
+  if (hasPending) return;
 
-    final now = ServerValue.timestamp;
+  final now = ServerValue.timestamp;
 
-    final messagesRef = _chatsRef.child('$chatId/messages');
-    final newMsgRef = messagesRef.push();
+  // 1️⃣ Send chat message
+  final messagesRef = _chatsRef.child('$chatId/messages');
+  final newMsgRef = messagesRef.push();
 
-    const appointmentText = "I want to book an appointment.\nWhen can I visit the clinic?";
+  const appointmentText =
+      "I want to book an appointment.\nWhen can I visit the clinic?";
 
-    await newMsgRef.set({
-      'text': appointmentText,
+  await newMsgRef.set({
+    'text': appointmentText,
+    'senderId': _currentUserId,
+    'createdAt': now,
+    'type': 'appointment_request',
+    'readBy': [_currentUserId],
+    'status': 'pending',
+  });
+
+  // 2️⃣ Create appointment record
+  final apptRef = apptsRef.push();
+  await apptRef.set({
+    'requesterId': _currentUserId,
+    'status': 'pending',
+    'createdAt': now,
+    'messageId': newMsgRef.key,
+  });
+
+  // 3️⃣ Find other participant (doctor)
+  final chatSnap = await _chatsRef.child(chatId).get();
+  final participants =
+      (chatSnap.value as Map?)?['participants'] as List?;
+
+  final otherUid =
+      participants?.firstWhere((id) => id != _currentUserId, orElse: () => null);
+
+  if (otherUid == null) return;
+
+  // 4️⃣ Update chat metadata
+  await _chatsRef.child(chatId).update({
+    'lastMessage': {
+      'text': 'Appointment Request',
       'senderId': _currentUserId,
       'createdAt': now,
       'type': 'appointment_request',
-      'readBy': [_currentUserId],
-      'status': 'pending',
-    });
+    },
+    'lastMessageTime': now,
+    'updatedAt': now,
+    'unreadCount/$otherUid': ServerValue.increment(1),
+  });
 
-    final apptRef = apptsRef.push();
-    await apptRef.set({
-      'requesterId': _currentUserId,
-      'status': 'pending',
-      'createdAt': now,
-      'messageId': newMsgRef.key,
-    });
-
-    // Update chat metadata
-    final chatSnap = await _chatsRef.child(chatId).get();
-    final participants = (chatSnap.value as Map?)?['participants'] as List?;
-    final otherUid = participants?.firstWhere((id) => id != _currentUserId, orElse: () => null);
-
-    if (otherUid == null) return;
-
-    await _chatsRef.child(chatId).update({
-      'lastMessage': {
-        'text': 'Appointment Request',
-        'senderId': _currentUserId,
-        'createdAt': now,
-        'type': 'appointment_request',
-      },
-      'lastMessageTime': now,
-      'updatedAt': now,
-      'unreadCount/$otherUid': ServerValue.increment(1),
-    });
-  }
+  // 🔔 5️⃣ SEND APPOINTMENT NOTIFICATION (NEW)
+  await NotificationService.createNotification(
+    receiverId: otherUid, // doctor
+    senderId: _currentUserId, // patient
+    type: 'appointment_request',
+    text: 'requested an appointment',
+    entityId: chatId, // open chat on tap
+  );
+}
 
   Future<void> cancelAppointmentRequest({
     required String chatId,
