@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/data/user/doctor_search_model.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 import 'package:myydoctor/presentation/screens/search/cubit/search_near_doctor_cubit.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
 import 'package:myydoctor/presentation/widgets/profile/saved_contents.dart';
@@ -329,8 +330,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                   : null,
 
                           onTap: () {
-                            // Navigate to doctor profile
-                            // Navigator.push(...)
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(userId: item.id,),));
                           },
                         );
                       },

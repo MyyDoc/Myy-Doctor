@@ -157,28 +157,28 @@ class _MyStoryViewerState extends State<MyStoryViewer> {
                 ),
 
                 // Delete button (bottom right)
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: GestureDetector(
-                      onTap: () => _deleteStory(story, index),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                // Align(
+                //   alignment: Alignment.bottomRight,
+                //   child: Padding(
+                //     padding: const EdgeInsets.all(24.0),
+                //     child: GestureDetector(
+                //       onTap: () => _deleteStory(story, index),
+                //       child: Container(
+                //         padding: const EdgeInsets.all(12),
+                //         decoration: BoxDecoration(
+                //           color: Colors.black54,
+                //           shape: BoxShape.circle,
+                //           border: Border.all(color: Colors.white, width: 2),
+                //         ),
+                //         child: const Icon(
+                //           Icons.delete_outline,
+                //           color: Colors.white,
+                //           size: 28,
+                //         ),
+                //       ),
+                //     ),
+                //   ),
+                // ),
 
                 // Optional: Progress indicator at top (like Instagram)
                 Positioned(

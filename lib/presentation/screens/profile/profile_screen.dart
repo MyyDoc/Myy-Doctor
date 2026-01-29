@@ -58,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     final targetUserId =
         widget.userId ?? FirebaseAuth.instance.currentUser?.uid ?? "";
 
-    context.read<FetchMyStoriesCubit>().fetchMyStories();
+    context.read<FetchMyStoriesCubit>().fetchMyStories(userId: targetUserId);
 
     if (widget.userId != null) {
       context.read<FetchUserDetailsCubit>().fetchUserById(targetUserId);
@@ -468,7 +468,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           final targetUserId =
               widget.userId ?? FirebaseAuth.instance.currentUser!.uid;
           await Future.wait([
-            context.read<FetchMyStoriesCubit>().fetchMyStories(),
+            context.read<FetchMyStoriesCubit>().fetchMyStories(userId: targetUserId),
             if (widget.userId != null) ...[
               context.read<FetchUserDetailsCubit>().fetchUserById(targetUserId),
               _checkIfFollowing(targetUserId),
@@ -912,9 +912,6 @@ class _ProfileScreenState extends State<ProfileScreen>
           ],
         ),
         const SizedBox(height: 15),
-        if (widget.userId != null)
-          const SizedBox()
-        else
           BlocBuilder<FetchMyStoriesCubit, FetchMyStoriesState>(
             builder: (context, state) {
               if (state is FetchMyStoriesLoading ||
@@ -927,7 +924,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       : <StoryModel>[];
               final itemCount = stories.isNotEmpty ? stories.length + 1 : 1;
 
-              return SizedBox(
+              return stories.isEmpty? SizedBox() : SizedBox(
                 height: 100,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
