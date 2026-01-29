@@ -39,10 +39,7 @@ class ChatService {
         'createdAt': ServerValue.timestamp,
         'lastMessageTime': ServerValue.timestamp,
         'lastMessage': null,
-        'unreadCount': {
-          _currentUserId: 0,
-          otherUserId: 0,
-        },
+        'unreadCount': {_currentUserId: 0, otherUserId: 0},
       });
     }
 
@@ -75,14 +72,17 @@ class ChatService {
     // Get current chat to find the other participant
     final chatSnapshot = await _chatsRef.child(chatId).get();
     final participants = (chatSnapshot.value as Map?)?['participants'] as List?;
-    final otherUid = participants
-        ?.firstWhere((id) => id != _currentUserId, orElse: () => null);
+    final otherUid = participants?.firstWhere(
+      (id) => id != _currentUserId,
+      orElse: () => null,
+    );
 
     if (otherUid == null) return;
 
-    final truncatedText = text.trim().length > 80
-        ? '${text.trim().substring(0, 80)}...'
-        : text.trim();
+    final truncatedText =
+        text.trim().length > 80
+            ? '${text.trim().substring(0, 80)}...'
+            : text.trim();
 
     await _chatsRef.child(chatId).update({
       'lastMessage': {
@@ -105,11 +105,12 @@ class ChatService {
       final data = event.snapshot.value as Map<dynamic, dynamic>?;
       if (data == null) return <Message>[];
 
-      final list = data.entries.map((entry) {
-        final key = entry.key as String;
-        final val = entry.value as Map<dynamic, dynamic>;
-        return Message.fromRealtime(key, val);
-      }).toList();
+      final list =
+          data.entries.map((entry) {
+            final key = entry.key as String;
+            final val = entry.value as Map<dynamic, dynamic>;
+            return Message.fromRealtime(key, val);
+          }).toList();
 
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // newest first
       return list;
@@ -125,10 +126,7 @@ class ChatService {
 
     print("getUserChats → listening for UID: $_currentUserId");
 
-    return _chatsRef
-        .orderByChild('lastMessageTime')
-        .onValue
-        .map((event) {
+    return _chatsRef.orderByChild('lastMessageTime').onValue.map((event) {
       final snap = event.snapshot;
 
       print("----------------------------------------");
@@ -165,7 +163,9 @@ class ChatService {
         print("→ Processing chat: $chatId");
 
         final participantsRaw = chatData['participants'];
-        print("  participants raw: $participantsRaw (type: ${participantsRaw.runtimeType})");
+        print(
+          "  participants raw: $participantsRaw (type: ${participantsRaw.runtimeType})",
+        );
 
         List<dynamic>? participants;
         if (participantsRaw is List) {
@@ -175,7 +175,9 @@ class ChatService {
           participants = participantsRaw.values.toList();
           print("  → converted map participants to list");
         } else {
-          print("  → participants is invalid type: ${participantsRaw.runtimeType}");
+          print(
+            "  → participants is invalid type: ${participantsRaw.runtimeType}",
+          );
           return;
         }
 
@@ -207,80 +209,83 @@ class ChatService {
   }
 
   /// Send appointment request + create appointment record
-Future<void> sendAppointmentRequestMessage(String chatId) async {
-  if (_currentUserId.isEmpty) return;
+  Future<void> sendAppointmentRequestMessage(String chatId) async {
+    if (_currentUserId.isEmpty) return;
 
-  // Check for existing pending request (client-side filter)
-  final apptsRef = _chatsRef.child('$chatId/appointments');
-  final apptsSnap = await apptsRef.get();
-  final appts = apptsSnap.value as Map?;
-  final hasPending =
-      appts?.values.any((v) =>
-          (v as Map)['requesterId'] == _currentUserId &&
-          (v as Map)['status'] == 'pending') ??
-      false;
+    // Check for existing pending request (client-side filter)
+    final apptsRef = _chatsRef.child('$chatId/appointments');
+    final apptsSnap = await apptsRef.get();
+    final appts = apptsSnap.value as Map?;
+    final hasPending =
+        appts?.values.any(
+          (v) =>
+              (v as Map)['requesterId'] == _currentUserId &&
+              (v as Map)['status'] == 'pending',
+        ) ??
+        false;
 
-  if (hasPending) return;
+    if (hasPending) return;
 
-  final now = ServerValue.timestamp;
+    final now = ServerValue.timestamp;
 
-  // 1️⃣ Send chat message
-  final messagesRef = _chatsRef.child('$chatId/messages');
-  final newMsgRef = messagesRef.push();
+    // 1️⃣ Send chat message
+    final messagesRef = _chatsRef.child('$chatId/messages');
+    final newMsgRef = messagesRef.push();
 
-  const appointmentText =
-      "I want to book an appointment.\nWhen can I visit the clinic?";
+    const appointmentText =
+        "I want to book an appointment.\nWhen can I visit the clinic?";
 
-  await newMsgRef.set({
-    'text': appointmentText,
-    'senderId': _currentUserId,
-    'createdAt': now,
-    'type': 'appointment_request',
-    'readBy': [_currentUserId],
-    'status': 'pending',
-  });
-
-  // 2️⃣ Create appointment record
-  final apptRef = apptsRef.push();
-  await apptRef.set({
-    'requesterId': _currentUserId,
-    'status': 'pending',
-    'createdAt': now,
-    'messageId': newMsgRef.key,
-  });
-
-  // 3️⃣ Find other participant (doctor)
-  final chatSnap = await _chatsRef.child(chatId).get();
-  final participants =
-      (chatSnap.value as Map?)?['participants'] as List?;
-
-  final otherUid =
-      participants?.firstWhere((id) => id != _currentUserId, orElse: () => null);
-
-  if (otherUid == null) return;
-
-  // 4️⃣ Update chat metadata
-  await _chatsRef.child(chatId).update({
-    'lastMessage': {
-      'text': 'Appointment Request',
+    await newMsgRef.set({
+      'text': appointmentText,
       'senderId': _currentUserId,
       'createdAt': now,
       'type': 'appointment_request',
-    },
-    'lastMessageTime': now,
-    'updatedAt': now,
-    'unreadCount/$otherUid': ServerValue.increment(1),
-  });
+      'readBy': [_currentUserId],
+      'status': 'pending',
+    });
 
-  // 🔔 5️⃣ SEND APPOINTMENT NOTIFICATION (NEW)
-  await NotificationService.createNotification(
-    receiverId: otherUid, // doctor
-    senderId: _currentUserId, // patient
-    type: 'appointment_request',
-    text: 'requested an appointment',
-    entityId: chatId, // open chat on tap
-  );
-}
+    // 2️⃣ Create appointment record
+    final apptRef = apptsRef.push();
+    await apptRef.set({
+      'requesterId': _currentUserId,
+      'status': 'pending',
+      'createdAt': now,
+      'messageId': newMsgRef.key,
+    });
+
+    // 3️⃣ Find other participant (doctor)
+    final chatSnap = await _chatsRef.child(chatId).get();
+    final participants = (chatSnap.value as Map?)?['participants'] as List?;
+
+    final otherUid = participants?.firstWhere(
+      (id) => id != _currentUserId,
+      orElse: () => null,
+    );
+
+    if (otherUid == null) return;
+
+    // 4️⃣ Update chat metadata
+    await _chatsRef.child(chatId).update({
+      'lastMessage': {
+        'text': 'Appointment Request',
+        'senderId': _currentUserId,
+        'createdAt': now,
+        'type': 'appointment_request',
+      },
+      'lastMessageTime': now,
+      'updatedAt': now,
+      'unreadCount/$otherUid': ServerValue.increment(1),
+    });
+
+    // 🔔 5️⃣ SEND APPOINTMENT NOTIFICATION (NEW)
+    await NotificationService.createNotification(
+      receiverId: otherUid, // doctor
+      senderId: _currentUserId, // patient
+      type: 'appointment_request',
+      text: 'requested an appointment',
+      entityId: chatId, // open chat on tap
+    );
+  }
 
   Future<void> cancelAppointmentRequest({
     required String chatId,
@@ -320,10 +325,7 @@ Future<void> sendAppointmentRequestMessage(String chatId) async {
     for (final entry in appts.entries) {
       final val = entry.value as Map;
       if (val['requesterId'] == _currentUserId && val['status'] == 'pending') {
-        return {
-          ...val,
-          'id': entry.key,
-        };
+        return {...val, 'id': entry.key};
       }
     }
     return null;
@@ -335,24 +337,41 @@ Future<void> sendAppointmentRequestMessage(String chatId) async {
   }) async {
     final now = ServerValue.timestamp;
 
+    // 1️⃣ Update message status
     await _chatsRef.child('$chatId/messages/$messageId').update({
       'status': 'accepted',
       'acceptedAt': now,
     });
 
+    // 2️⃣ Find appointment record
     final apptsSnap = await _chatsRef.child('$chatId/appointments').get();
     String? apptKey;
+    String? patientId;
 
     (apptsSnap.value as Map?)?.forEach((key, val) {
-      if ((val as Map)['messageId'] == messageId) apptKey = key;
+      final map = val as Map;
+      if (map['messageId'] == messageId) {
+        apptKey = key;
+        patientId = map['requesterId'];
+      }
     });
 
-    if (apptKey != null) {
+    if (apptKey != null && patientId != null) {
+      // 3️⃣ Update appointment
       await _chatsRef.child('$chatId/appointments/$apptKey').update({
         'status': 'accepted',
         'acceptedAt': now,
         'doctorId': _currentUserId,
       });
+
+      // 🔔 4️⃣ SEND NOTIFICATION TO PATIENT
+      await NotificationService.createNotification(
+        receiverId: patientId!,
+        senderId: _currentUserId, // doctor
+        type: 'appointment_accepted',
+        text: 'accepted your appointment',
+        entityId: chatId,
+      );
     }
   }
 
@@ -362,23 +381,40 @@ Future<void> sendAppointmentRequestMessage(String chatId) async {
   }) async {
     final now = ServerValue.timestamp;
 
+    // 1️⃣ Update message status
     await _chatsRef.child('$chatId/messages/$messageId').update({
       'status': 'rejected',
       'rejectedAt': now,
     });
 
+    // 2️⃣ Find appointment record
     final apptsSnap = await _chatsRef.child('$chatId/appointments').get();
     String? apptKey;
+    String? patientId;
 
     (apptsSnap.value as Map?)?.forEach((key, val) {
-      if ((val as Map)['messageId'] == messageId) apptKey = key;
+      final map = val as Map;
+      if (map['messageId'] == messageId) {
+        apptKey = key;
+        patientId = map['requesterId'];
+      }
     });
 
-    if (apptKey != null) {
+    if (apptKey != null && patientId != null) {
+      // 3️⃣ Update appointment
       await _chatsRef.child('$chatId/appointments/$apptKey').update({
         'status': 'rejected',
         'rejectedAt': now,
       });
+
+      // 🔔 4️⃣ SEND NOTIFICATION TO PATIENT
+      await NotificationService.createNotification(
+        receiverId: patientId!,
+        senderId: _currentUserId, // doctor
+        type: 'appointment_rejected',
+        text: 'rejected your appointment',
+        entityId: chatId,
+      );
     }
   }
 
@@ -397,7 +433,8 @@ Future<void> sendAppointmentRequestMessage(String chatId) async {
 
   Future<bool> hasUnreadMessages(String chatId) async {
     if (_currentUserId.isEmpty) return false;
-    final snap = await _chatsRef.child('$chatId/unreadCount/$_currentUserId').get();
+    final snap =
+        await _chatsRef.child('$chatId/unreadCount/$_currentUserId').get();
     final count = (snap.value as num?)?.toInt() ?? 0;
     return count > 0;
   }
