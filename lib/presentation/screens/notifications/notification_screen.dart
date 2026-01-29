@@ -70,6 +70,7 @@ class _NotificationsView extends StatelessWidget {
           if (state is NotificationLoaded) {
             return _NotificationList(
               notifications: state.notifications,
+              senderNames: state.senderNames,
             );
           }
 
@@ -82,8 +83,12 @@ class _NotificationsView extends StatelessWidget {
 
 class _NotificationList extends StatelessWidget {
   final List<AppNotificationModel> notifications;
+  final Map<String, String> senderNames;
 
-  const _NotificationList({required this.notifications});
+  const _NotificationList({
+    required this.notifications,
+    required this.senderNames,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +98,11 @@ class _NotificationList extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 6),
       itemBuilder: (context, index) {
         final notification = notifications[index];
-        return _NotificationTile(notification: notification);
+        return _NotificationTile(
+          notification: notification,
+          senderName:
+              senderNames[notification.senderId] ?? "Someone",
+        );
       },
     );
   }
@@ -101,8 +110,12 @@ class _NotificationList extends StatelessWidget {
 
 class _NotificationTile extends StatelessWidget {
   final AppNotificationModel notification;
+  final String senderName;
 
-  const _NotificationTile({required this.notification});
+  const _NotificationTile({
+    required this.notification,
+    required this.senderName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -113,8 +126,19 @@ class _NotificationTile extends StatelessWidget {
         context
             .read<NotificationCubit>()
             .markAsRead(notification.id);
-        
-        Navigator.push(context, MaterialPageRoute(builder: (context) => ChatScreen(chatId: notification.entityId ?? "", isDoctor: false),));
+
+        if (notification.entityId != null &&
+            notification.entityId!.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChatScreen(
+                chatId: notification.entityId!,
+                isDoctor: false,
+              ),
+            ),
+          );
+        }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -140,9 +164,16 @@ class _NotificationTile extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        _titleForType(notification.type),
+                        senderName,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _titleForType(notification.type),
+                        style: const TextStyle(
                           fontSize: 16,
                         ),
                       ),
@@ -193,6 +224,8 @@ class _NotificationTile extends StatelessWidget {
         return Icons.calendar_month;
       case "appointment_accepted":
         return Icons.check_circle;
+      case "appointment_rejected":
+        return Icons.cancel;
       case "message":
         return Icons.chat;
       default:
@@ -203,15 +236,17 @@ class _NotificationTile extends StatelessWidget {
   String _titleForType(String type) {
     switch (type) {
       case "follow":
-        return "New follower";
+        return "started following you";
       case "appointment_request":
-        return "Appointment request";
+        return "requested an appointment";
       case "appointment_accepted":
-        return "Appointment accepted";
+        return "accepted your appointment";
+      case "appointment_rejected":
+        return "rejected your appointment";
       case "message":
-        return "New message";
+        return "sent you a message";
       default:
-        return "Notification";
+        return "sent a notification";
     }
   }
 }

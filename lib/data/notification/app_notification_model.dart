@@ -24,7 +24,10 @@ class AppNotificationModel {
       type: data['type'],
       text: data['text'],
       entityId: data['entityId'],
-      createdAt: data['createdAt'],
+      createdAt:
+          data['createdAt'] is int
+              ? data['createdAt']
+              : 0, // 👈 fallback for safety
       read: data['read'] ?? false,
     );
   }
