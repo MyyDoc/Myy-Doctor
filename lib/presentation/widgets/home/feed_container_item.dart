@@ -9,8 +9,7 @@ import 'package:myydoctor/presentation/widgets/home/show_more_text.dart';
 import '../../screens/profile/reel_post_uploding/bloc/save_post_cubit/save_post_cubit.dart';
 import 'full_screen_view.dart';
 
-
-class FeedContainerItem extends StatelessWidget {
+class FeedContainerItem extends StatefulWidget {
   final String? postImageUrl;
   final String? personName;
   final String? profileImageUrl;
@@ -30,12 +29,17 @@ class FeedContainerItem extends StatelessWidget {
     this.ownerId,
     required this.isInitiallySaved,
     required this.isDoctor,
-    required this.caption
+    required this.caption,
   });
 
   @override
-  Widget build(BuildContext context) {
+  State<FeedContainerItem> createState() => _FeedContainerItemState();
+}
 
+class _FeedContainerItemState extends State<FeedContainerItem> {
+  final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  @override
+  Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: Column(
@@ -46,21 +50,31 @@ class FeedContainerItem extends StatelessWidget {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: isDoctor ?  () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(userId: ownerId,),));
-                  } :  null,
+                  onTap:
+                      widget.isDoctor
+                          ? () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        ProfileScreen(userId: widget.ownerId),
+                              ),
+                            );
+                          }
+                          : null,
                   child: Row(
                     children: [
                       CircleAvatar(
                         backgroundImage: NetworkImage(
-                          profileImageUrl ??
+                          widget.profileImageUrl ??
                               "https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc",
                         ),
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        personName ?? "Unknown",
-                        style: textTheme.bodyLarge!.copyWith(
+                        widget.personName ?? "Unknown",
+                        style: widget.textTheme.bodyLarge!.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -76,18 +90,20 @@ class FeedContainerItem extends StatelessWidget {
                     color: Colors.white,
                   ),
                   onSelected: (value) {
-                    if (value == 'delete' && postId != null) {
+                    if (value == 'delete' && widget.postId != null) {
                       context.read<UploadPicCubit>().deletePost(
-                        postId: postId!,
+                        postId: widget.postId!,
                       );
                     }
                   },
                   itemBuilder:
-                      (context) => const [
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text('Delete Post'),
-                        ),
+                      (context) => [
+                        if (currentUserId != null &&
+                            widget.ownerId == currentUserId)
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Delete Post'),
+                          ),
                       ],
                 ),
               ],
@@ -102,14 +118,16 @@ class FeedContainerItem extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => FullPostViewScreen(
-                    imageUrl: postImageUrl ??
-                        "https://fallback-url.com",
-                    personName: personName ?? "Unknown",
-                    profileImageUrl: profileImageUrl ??
-                        "https://default-profile.com",
-                    caption: caption,
-                  ),
+                  builder:
+                      (_) => FullPostViewScreen(
+                        imageUrl:
+                            widget.postImageUrl ?? "https://fallback-url.com",
+                        personName: widget.personName ?? "Unknown",
+                        profileImageUrl:
+                            widget.profileImageUrl ??
+                            "https://default-profile.com",
+                        caption: widget.caption,
+                      ),
                 ),
               );
             },
@@ -117,13 +135,12 @@ class FeedContainerItem extends StatelessWidget {
               width: double.infinity,
               height: 300,
               child: Image.network(
-                postImageUrl ??
+                widget.postImageUrl ??
                     "https://imgs.search.brave.com/8SB8c98eLDaKU2XtzBkYn-3RMNGpc37mjtZVHwmXOHI/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9h/ZXJpYWwtdmlldy1n/cmVlbi1tb3VudGFp/bm91cy1zY2VuZXJ5/LXN1bnJpc2VfMTgx/NjI0LTEyMzE5Lmpw/Zz9zZW10PWFpc19o/eWJyaWQmdz03NDA",
                 fit: BoxFit.cover,
               ),
             ),
           ),
-
 
           const SizedBox(height: 13),
 
@@ -133,13 +150,15 @@ class FeedContainerItem extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: ShowMoreText(
-                  text: caption,
+                  text: widget.caption,
                   maxLines: 2,
                   textStyle: const TextStyle(color: Colors.white),
                 ),
               ),
             ],
-          ),const SizedBox(height: 13),
+          ),
+          const SizedBox(height: 13),
+
           /// ACTION BAR
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -151,7 +170,9 @@ class FeedContainerItem extends StatelessWidget {
                   flex: 2,
                   child: Text(
                     "shared by others",
-                    style: textTheme.bodyMedium!.copyWith(color: Colors.white),
+                    style: widget.textTheme.bodyMedium!.copyWith(
+                      color: Colors.white,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -162,11 +183,12 @@ class FeedContainerItem extends StatelessWidget {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          if (postId == null || ownerId == null) return;
+                          if (widget.postId == null || widget.ownerId == null)
+                            return;
 
                           final cubit = context.read<PostCommentCubit>();
 
-                          cubit.fetchComments(postId!);
+                          cubit.fetchComments(widget.postId!);
 
                           showModalBottomSheet(
                             context: context,
@@ -181,8 +203,8 @@ class FeedContainerItem extends StatelessWidget {
                                 (_) => BlocProvider.value(
                                   value: cubit,
                                   child: PostCommentBottomSheet(
-                                    postId: postId!,
-                                    ownerId: ownerId!,
+                                    postId: widget.postId!,
+                                    ownerId: widget.ownerId!,
                                   ),
                                 ),
                           );
@@ -195,24 +217,34 @@ class FeedContainerItem extends StatelessWidget {
                       const Icon(Icons.send_rounded, color: Colors.white),
                       IconButton(
                         icon: Icon(
-                          isInitiallySaved ? Icons.bookmark : Icons.bookmark_border,
-                          color: isInitiallySaved ? Colors.purple : Colors.white,
+                          widget.isInitiallySaved
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                          color:
+                              widget.isInitiallySaved
+                                  ? Colors.purple
+                                  : Colors.white,
                           size: 28,
                         ),
                         onPressed: () async {
-                          if (postId == null || ownerId == null) return;
+                          if (widget.postId == null || widget.ownerId == null)
+                            return;
 
                           final cubit = context.read<SavePostCubit>();
 
                           await cubit.toggleSave(
-                            postId: postId!,
-                            ownerId: ownerId!,
-                            isCurrentlySaved: isInitiallySaved,
+                            postId: widget.postId!,
+                            ownerId: widget.ownerId!,
+                            isCurrentlySaved: widget.isInitiallySaved,
                           );
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(isInitiallySaved ? 'Post unsaved' : 'Post saved!'),
+                              content: Text(
+                                widget.isInitiallySaved
+                                    ? 'Post unsaved'
+                                    : 'Post saved!',
+                              ),
                               duration: const Duration(seconds: 1),
                             ),
                           );
@@ -224,7 +256,7 @@ class FeedContainerItem extends StatelessWidget {
               ],
             ),
           ),
-          Divider(color: Colors.grey.shade200, thickness: 0.5,)
+          Divider(color: Colors.grey.shade200, thickness: 0.5),
         ],
       ),
     );
