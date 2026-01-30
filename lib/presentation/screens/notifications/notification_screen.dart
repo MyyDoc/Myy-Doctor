@@ -126,19 +126,8 @@ class _NotificationTile extends StatelessWidget {
         context
             .read<NotificationCubit>()
             .markAsRead(notification.id);
-
-        if (notification.entityId != null &&
-            notification.entityId!.isNotEmpty) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ChatScreen(
-                chatId: notification.entityId!,
-                isDoctor: false,
-              ),
-            ),
-          );
-        }
+        
+        if(notification.type == "appointment_request") Navigator.push(context, MaterialPageRoute(builder: (context) => ChatScreen(chatId: notification.entityId ?? "", isDoctor: false),));
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),

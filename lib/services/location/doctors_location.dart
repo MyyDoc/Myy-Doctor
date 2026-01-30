@@ -16,11 +16,18 @@ class DoctorSearchService {
     try {
       final snapshot = await _firestore.collection('users').get();
 
+      // 🔹 Only take users whose preference contains "Doctor"
       final docs = snapshot.docs
-          .map((e) => {
-                ...e.data(),
-                'id': e.id,
-              })
+          .where((doc) {
+        final data = doc.data();
+        final List preferences =
+        List.from(data['userPreference'] ?? []);
+        return preferences.contains("Doctor");
+      })
+          .map((doc) => {
+        ...doc.data(),
+        'id': doc.id,
+      })
           .toList();
 
       return _searchFromRawDocs(
@@ -30,10 +37,11 @@ class DoctorSearchService {
         rawDoctors: docs,
         maxDistanceKm: maxDistanceKm,
       );
-    } catch (_) {
+    } catch (e) {
       return [];
     }
   }
+
 
   /// 🔹 EXISTING STYLE METHOD (STILL WORKS)
   List<DoctorSearchModel> searchDoctorsFromList({

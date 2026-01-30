@@ -17,17 +17,25 @@ class FetchMyStoriesCubit extends Cubit<FetchMyStoriesState> {
     print('Stories State Change: ${change.currentState} → ${change.nextState}');
   }
 
-  Future<void> fetchMyStories() async {
+  Future<void> fetchMyStories({String? userId}) async {
     emit(FetchMyStoriesLoading());
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        emit(const FetchMyStoriesError('User not logged in'));
-        return;
-      }
+      String uid;
 
-      final uid = user.uid;
+      // If userId is passed and not empty, use it
+      if (userId != null && userId.isNotEmpty) {
+        uid = userId;
+      }
+      // Otherwise use current logged-in user
+      else {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          emit(const FetchMyStoriesError('User not logged in'));
+          return;
+        }
+        uid = user.uid;
+      }
       final storiesRef = FirebaseDatabase.instance.ref().child('stories').child(uid);
 
       final snapshot = await storiesRef.get();
@@ -46,7 +54,6 @@ class FetchMyStoriesCubit extends Cubit<FetchMyStoriesState> {
         final map = value as Map;
         final createdAt = (map['createdAt'] as int?) ?? 0;
 
-        // Only show stories from last 24 hours
         if (now - createdAt <= 24 * 60 * 60 * 1000) {
           stories.add(StoryModel(
             storyId: key,
