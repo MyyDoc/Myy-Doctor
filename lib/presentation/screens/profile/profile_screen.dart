@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/core/loader/loader.dart';
 import 'package:myydoctor/data/user/story_model.dart';
 import 'package:myydoctor/data/user/user_model.dart';
 import 'package:myydoctor/presentation/screens/auth/login.dart';
@@ -39,6 +40,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     with TickerProviderStateMixin {
   TabController? _tabController;
 
+  bool isDoctor = false;
+
   int postsCount = 0;
   bool _isFollowing = false;
 
@@ -71,21 +74,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
     showPostCount();
   }
-
-  // void _initializeTabController(bool showMultipleTabs) {
-  //   if (_tabControllerInitialized) return; // Prevent multiple calls
-
-  //   final tabLength = showMultipleTabs ? 3 : 1;
-
-  //   _tabController?.dispose();
-  //   _tabController = TabController(
-  //     length: tabLength,
-  //     vsync: this,
-  //     initialIndex: 0,
-  //   );
-
-  //   _tabControllerInitialized = true;
-  // }
 
   void showPostCount() async {
     postsCount = await getUserPostsCount(
@@ -296,7 +284,9 @@ class _ProfileScreenState extends State<ProfileScreen>
         leading: GestureDetector(
           onTap:
               widget.userId != null
-                  ? () => Navigator.pop(context)
+                  ? () {
+                    Navigator.pop(context);
+                  }
                   : () async {
                     final bool? shouldLogout = await showDialog<bool>(
                       context: context,
@@ -488,7 +478,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         builder: (context, state) {
                           if (state is FetchUserLoading) {
                             return const Center(
-                              child: CircularProgressIndicator(),
+                              child: MyyDocLoader(),
                             );
                           }
                           if (state is FetchUserError) {
@@ -497,6 +487,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                           if (state is FetchUserSuccess) {
                             final isDoctorProfile =
                                 state.isDoctor || widget.userId != null;
+
+                              isDoctor = state.isDoctor;
 
                             // // Initialize TabController only once after build
                             // WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -584,7 +576,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           body: Builder(
             builder: (context) {
               if (_tabController == null) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: MyyDocLoader());
               }
 
               return TabBarView(
@@ -660,7 +652,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       return BlocBuilder<FetchUserDetailsCubit, FetchUserDetailsState>(
         builder: (context, state) {
           if (state is FetchUserDetailsLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: MyyDocLoader());
           }
           if (state is FetchUserDetailsError ||
               state is FetchUserDetailsNotFound) {
@@ -683,7 +675,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       return BlocBuilder<ProfileCubit, ProfileState>(
         builder: (context, state) {
           if (state is ProfileLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: MyyDocLoader());
           }
           if (state is ProfileError) {
             return Center(child: Text(state.message));
@@ -911,7 +903,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ],
         ),
+        if(widget.userId != null || isDoctor)
         const SizedBox(height: 15),
+        if(widget.userId != null ||  isDoctor)
           BlocBuilder<FetchMyStoriesCubit, FetchMyStoriesState>(
             builder: (context, state) {
               if (state is FetchMyStoriesLoading ||
@@ -924,7 +918,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       : <StoryModel>[];
               final itemCount = stories.isNotEmpty ? stories.length + 1 : 1;
 
-              return stories.isEmpty? SizedBox() : SizedBox(
+              return SizedBox(
                 height: 100,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
@@ -946,7 +940,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           if (result == "success") {
                             context
                                 .read<FetchMyStoriesCubit>()
-                                .fetchMyStories();
+                                .fetchMyStories(userId: widget.userId ?? FirebaseAuth.instance.currentUser?.uid ?? "");
                           }
                         },
                         child: StoryCircleItem(

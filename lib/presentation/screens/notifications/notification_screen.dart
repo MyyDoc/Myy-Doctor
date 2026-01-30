@@ -4,6 +4,8 @@ import 'package:myydoctor/data/notification/app_notification_model.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
 import 'package:myydoctor/presentation/screens/notifications/cubit/notification_cubit.dart';
 
+import '../../../core/loader/loader.dart';
+
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
@@ -51,7 +53,7 @@ class _NotificationsView extends StatelessWidget {
         builder: (context, state) {
           if (state is NotificationLoading ||
               state is NotificationInitial) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: MyyDocLoader());
           }
 
           if (state is NotificationEmpty) {

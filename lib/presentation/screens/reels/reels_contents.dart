@@ -3,10 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/data/user/reel_comment_model.dart';
 import 'package:myydoctor/data/user/reels_model.dart';
+import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
+import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 import 'package:myydoctor/presentation/screens/reels/bloc/reel_comment_cubit/reel_comment_cubit.dart';
 import 'package:myydoctor/presentation/screens/reels/bloc/reel_feed_cubit/reel_feed_cubit.dart';
 import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 import 'package:video_player/video_player.dart';
+
+import '../../../core/loader/loader.dart';
+import '../../../core/services/chat_service.dart';
 
 class ReelsScreen extends StatefulWidget {
   const ReelsScreen({super.key});
@@ -36,7 +41,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
         child: BlocBuilder<ReelFeedCubit, ReelFeedState>(
           builder: (context, state) {
             if (state is ReelFeedLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(child: MyyDocLoader());
             }
 
             if (state is ReelFeedLoaded) {
@@ -130,30 +135,33 @@ class _FirebaseReelWidgetState extends State<FirebaseReelWidget> {
                     child: VideoPlayer(_controller),
                   ),
                 )
-              : const Center(child: CircularProgressIndicator()),
+              : const Center(child: MyyDocLoader()),
 
           /// USER INFO (BOTTOM LEFT)
           Positioned(
             left: 16,
             bottom: 80,
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundImage: widget.reel.ownerProfilePicUrl.isNotEmpty
-                      ? NetworkImage(widget.reel.ownerProfilePicUrl)
-                      : null,
-                  backgroundColor: Colors.grey,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  widget.reel.ownerName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+            child: GestureDetector(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(userId: widget.reel.ownerId,),)),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundImage: widget.reel.ownerProfilePicUrl.isNotEmpty
+                        ? NetworkImage(widget.reel.ownerProfilePicUrl)
+                        : null,
+                    backgroundColor: Colors.grey,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  Text(
+                    widget.reel.ownerName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -189,6 +197,26 @@ class _FirebaseReelWidgetState extends State<FirebaseReelWidget> {
                   widget.reel.commentCount.toString(),
                   style: const TextStyle(color: Colors.white),
                 ),
+              ],
+            ),
+          ),
+          Positioned(
+            right: 16,
+            bottom: 55,
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: () async{
+                    final chatId = await ChatService().getOrCreateChatRoom(
+                      widget.reel.ownerId,
+                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ChatScreen(chatId: chatId, isDoctor: true),));
+                  },
+                  child: SizedBox(
+                    height: 40,
+                      child: Image.asset("assets/images/8ad19fdbc58af4bd5b0a3f9441f03fe5c09755ca.png")),
+                ),
+                const SizedBox(height: 4),
               ],
             ),
           ),
@@ -279,7 +307,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                     builder: (context, state) {
                       if (state is CommentLoading) {
                         return const Center(
-                          child: CircularProgressIndicator(),
+                          child: MyyDocLoader(),
                         );
                       }
 

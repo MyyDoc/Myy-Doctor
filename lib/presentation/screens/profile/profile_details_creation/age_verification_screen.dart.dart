@@ -8,6 +8,8 @@ import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
 import 'package:myydoctor/presentation/widgets/profile/second_app_button.dart';
 
+import '../../../../core/loader/loader.dart';
+
 class AgeVerificationScreen extends StatefulWidget {
   final String imagePath;
   const AgeVerificationScreen({super.key, required this.imagePath});
@@ -162,7 +164,7 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                 },
                 builder: (context, state) {
                   if (state is SaveAgeLoading) {
-                    return const CircularProgressIndicator();
+                    return const MyyDocLoader();
                   }
 
                   return SecondAppButton(

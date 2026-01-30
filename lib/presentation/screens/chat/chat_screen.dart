@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 
+import '../../../core/loader/loader.dart';
 import '../../../core/services/chat_service.dart';
 import '../../../data/chat/message_model.dart';
 import '../../widgets/chat/chat_bubble_widget.dart';
@@ -172,7 +173,7 @@ class _ChatScreenState extends State<ChatScreen> {
               stream: _chatService.getMessages(widget.chatId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: MyyDocLoader());
                 }
 
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {

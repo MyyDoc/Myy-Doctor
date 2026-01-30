@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../../../core/loader/loader.dart';
 import '../../../../data/user/user_model.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -177,7 +178,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         title: const Text("Edit Profile"),
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: MyyDocLoader())
           : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(

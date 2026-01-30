@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/loader/loader.dart';
 import '../../../core/services/chat_service.dart';
 import '../../../data/chat/chat_model.dart';
 import '../../widgets/chat/call_list_widget.dart';
@@ -15,7 +16,11 @@ class ChatListScreen extends StatefulWidget {
 }
 
 class _ChatListScreenState extends State<ChatListScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin , AutomaticKeepAliveClientMixin{
+
+  @override
+  bool get wantKeepAlive => true;
+
   late TabController _tabController;
   bool searchClicked = false;
   final TextEditingController _searchController = TextEditingController();
@@ -23,10 +28,17 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   final ChatService _chatService = ChatService();
 
+  late final Stream<List<ChatRoom>> _chatStream;
+
+  List<ChatRoom> _cachedChats = [];
+
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+
+    _chatStream = _chatService.getUserChats();
 
     _searchController.addListener(() {
       setState(() {
@@ -44,6 +56,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
@@ -143,31 +156,33 @@ class _ChatListScreenState extends State<ChatListScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                // Chats Tab with search
+                // ✅ Use the stored stream variable
                 StreamBuilder<List<ChatRoom>>(
-                  stream: _chatService.getUserChats(),
+                  stream: _chatStream,
+                  initialData: _cachedChats,
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
+                    // ✅ Update cache when new data arrives
+                    if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                      _cachedChats = snapshot.data!;
+                    }
+
+                    // ✅ Only show loader if we have no cached data
+                    if (snapshot.connectionState == ConnectionState.waiting &&
+                        _cachedChats.isEmpty) {
+                      return const Center(child: MyyDocLoader());
                     }
 
                     if (snapshot.hasError) {
                       return Center(child: Text("Error: ${snapshot.error}"));
                     }
 
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Center(child: Text("No conversations yet"));
-                    }
+                    // ✅ Use cached data if available
+                    final chats = snapshot.hasData && snapshot.data!.isNotEmpty
+                        ? snapshot.data!
+                        : _cachedChats;
 
-                    // Filter chats based on search query
-                    List<ChatRoom> chats = snapshot.data!;
-                    if (_searchQuery.isNotEmpty) {
-                      chats = chats.where((chat) {
-                        // We'll resolve the other user name in the builder anyway
-                        // For simplicity → filter after name is loaded (or pre-fetch if needed)
-                        // Here we show all and let ListTile decide visibility
-                        return true; // see below in ListTile
-                      }).toList();
+                    if (chats.isEmpty) {
+                      return const Center(child: Text("No conversations yet"));
                     }
 
                     return ListView.builder(
@@ -279,7 +294,6 @@ class _ChatListScreenState extends State<ChatListScreen>
                 const Center(child: Text("Groups feature coming soon")),
 
                 // Calls Tab
-                // CallsScreen(),
                 const Center(child: Text("Calls feature coming soon")),
               ],
             ),

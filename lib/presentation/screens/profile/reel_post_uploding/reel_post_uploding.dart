@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/core/loader/loader.dart';
 
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_pic_cubit/upload_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_reel_cubit/upload_reel_cubit.dart';
@@ -180,7 +181,7 @@ class _ReelPostUplodingScreenState
                         },
                         builder: (context, state) {
                           if (state is UploadLoadingState) {
-                            return const CircularProgressIndicator();
+                            return const MyyDocLoader();
                           }
                           return SecondAppButton(
                             screenHeight: screenHeight,

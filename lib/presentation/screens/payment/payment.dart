@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:myydoctor/data/payment/payment_model.dart';
 import 'package:myydoctor/domain/payment/payments_repository.dart';
 
+import '../../../core/loader/loader.dart';
+
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
 
@@ -44,7 +46,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       body: SafeArea(
         child:
             isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: MyyDocLoader())
                 : availablePayments.isEmpty
                 ? const Center(
                   child: Text(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:myydoctor/core/loader/loader.dart';
 import 'package:myydoctor/presentation/screens/home/homescreen.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/selfie_screen.dart';
 import 'package:myydoctor/presentation/widgets/auth/loginButton.dart';
@@ -122,9 +123,7 @@ class _LoginAndSignUpState extends State<LoginAndSignUp> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(
-                  color: Color(0xFFD4AF37),
-                ),
+                const MyyDocLoader(),
                 const SizedBox(height: 16),
                 Text(
                   'Please wait...',

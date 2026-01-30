@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/core/loader/loader.dart';
 import 'package:story_view/story_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -140,7 +141,7 @@ class _MyStoryViewerState extends State<MyStoryViewer> {
                   imageUrl: story.imageUrl,
                   fit: BoxFit.cover,
                   placeholder: (context, url) => const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+                    child: MyyDocLoader(),
                   ),
                   errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
                 ),

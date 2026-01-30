@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
+import '../../core/loader/loader.dart';
+
 class LocationService {
   // Check if location services are enabled and permissions are granted
   static Future<bool> _handleLocationPermission() async {
@@ -165,7 +167,7 @@ class _CurrentLocationWidgetState extends State<CurrentLocationWidget> {
                   SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: MyyDocLoader(),
                   ),
                   SizedBox(width: 12),
                   Text('Getting your location...'),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/core/loader/loader.dart';
 import 'package:myydoctor/data/posts/pic_post_model.dart';
 import 'package:myydoctor/presentation/screens/reels/bloc/post_comment_cubit/post_comment_cubit.dart';
 import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
@@ -55,7 +56,7 @@ class _GlobalPostFeedState extends State<GlobalPostFeed>
         stream: globalUserPostFeed,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: MyyDocLoader());
           }
 
           final posts = snapshot.data!;

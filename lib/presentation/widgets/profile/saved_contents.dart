@@ -12,6 +12,8 @@ import 'package:myydoctor/repository/pic_post_repository.dart';
 import 'package:myydoctor/repository/reel_repostitory.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
 
+import '../../../core/loader/loader.dart';
+
 /// ─────────────────────────────────────────────────────────
 /// SNACKBAR HELPER
 /// ─────────────────────────────────────────────────────────
@@ -159,7 +161,7 @@ class _PostsGrid extends StatelessWidget {
         }
 
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: MyyDocLoader());
         }
 
         final posts = snapshot.data!;
@@ -243,7 +245,7 @@ class _ReelsGrid extends StatelessWidget {
         }
 
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: MyyDocLoader());
         }
 
         final reels = snapshot.data!;
@@ -462,7 +464,7 @@ class _ReelPlayerScreenState extends State<ReelPlayerScreen> {
                         aspectRatio: _controller!.value.aspectRatio,
                         child: VideoPlayer(_controller!),
                       )
-                    : const CircularProgressIndicator(color: Colors.white),
+                    : const MyyDocLoader(),
               ),
 
               /// BACK BUTTON

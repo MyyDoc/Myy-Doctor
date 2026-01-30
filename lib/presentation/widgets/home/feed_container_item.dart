@@ -1,16 +1,18 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/core/loader/loader.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_pic_cubit/upload_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/reels/bloc/post_comment_cubit/post_comment_cubit.dart';
 import 'package:myydoctor/presentation/widgets/home/show_more_text.dart';
 
 import '../../screens/profile/reel_post_uploding/bloc/save_post_cubit/save_post_cubit.dart';
+import '../../screens/profile/story_view/bloc/fetch_story_cubit/fetch_my_stories_cubit.dart';
 import 'full_screen_view.dart';
 
 
-class FeedContainerItem extends StatelessWidget {
+class FeedContainerItem extends StatefulWidget {
   final String? postImageUrl;
   final String? personName;
   final String? profileImageUrl;
@@ -20,6 +22,7 @@ class FeedContainerItem extends StatelessWidget {
   final TextTheme textTheme;
   final bool isDoctor;
   final String caption;
+
   const FeedContainerItem({
     super.key,
     required this.textTheme,
@@ -30,12 +33,24 @@ class FeedContainerItem extends StatelessWidget {
     this.ownerId,
     required this.isInitiallySaved,
     required this.isDoctor,
-    required this.caption
+    required this.caption,
   });
 
   @override
-  Widget build(BuildContext context) {
+  State<FeedContainerItem> createState() => _FeedContainerItemState();
+}
 
+class _FeedContainerItemState extends State<FeedContainerItem> {
+  late bool isSaved;
+
+  @override
+  void initState() {
+    super.initState();
+    isSaved = widget.isInitiallySaved;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: Column(
@@ -46,21 +61,38 @@ class FeedContainerItem extends StatelessWidget {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: isDoctor ?  () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen(userId: ownerId,),));
-                  } :  null,
+                  // In FeedContainerItem
+                  onTap: widget.isDoctor
+                      ? () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProfileScreen(
+                          userId: widget.ownerId,
+                        ),
+                      ),
+                    );
+
+                    if (mounted) {
+                      final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
+                      context.read<FetchMyStoriesCubit>().fetchMyStories(
+                        userId: currentUserId,
+                      );
+                    }
+                  }
+                      : null,
                   child: Row(
                     children: [
                       CircleAvatar(
                         backgroundImage: NetworkImage(
-                          profileImageUrl ??
+                          widget.profileImageUrl ??
                               "https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc",
                         ),
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        personName ?? "Unknown",
-                        style: textTheme.bodyLarge!.copyWith(
+                        widget.personName ?? "Unknown",
+                        style: widget.textTheme.bodyLarge!.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -68,27 +100,22 @@ class FeedContainerItem extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 const Spacer(),
                 PopupMenuButton(
-                  icon: const Icon(
-                    Icons.more_vert_rounded,
-                    color: Colors.white,
-                  ),
+                  icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
                   onSelected: (value) {
-                    if (value == 'delete' && postId != null) {
+                    if (value == 'delete' && widget.postId != null) {
                       context.read<UploadPicCubit>().deletePost(
-                        postId: postId!,
+                        postId: widget.postId!,
                       );
                     }
                   },
-                  itemBuilder:
-                      (context) => const [
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text('Delete Post'),
-                        ),
-                      ],
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete Post'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -103,12 +130,10 @@ class FeedContainerItem extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (_) => FullPostViewScreen(
-                    imageUrl: postImageUrl ??
-                        "https://fallback-url.com",
-                    personName: personName ?? "Unknown",
-                    profileImageUrl: profileImageUrl ??
-                        "https://default-profile.com",
-                    caption: caption,
+                    imageUrl: widget.postImageUrl ?? "",
+                    personName: widget.personName ?? "Unknown",
+                    profileImageUrl: widget.profileImageUrl ?? "",
+                    caption: widget.caption,
                   ),
                 ),
               );
@@ -117,29 +142,31 @@ class FeedContainerItem extends StatelessWidget {
               width: double.infinity,
               height: 300,
               child: Image.network(
-                postImageUrl ??
-                    "https://imgs.search.brave.com/8SB8c98eLDaKU2XtzBkYn-3RMNGpc37mjtZVHwmXOHI/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9h/ZXJpYWwtdmlldy1n/cmVlbi1tb3VudGFp/bm91cy1zY2VuZXJ5/LXN1bnJpc2VfMTgx/NjI0LTEyMzE5Lmpw/Zz9zZW10PWFpc19o/eWJyaWQmdz03NDA",
+                widget.postImageUrl ?? "",
                 fit: BoxFit.cover,
               ),
             ),
           ),
 
-
           const SizedBox(height: 13),
 
+          /// CAPTION
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: ShowMoreText(
-                  text: caption,
+                  text: widget.caption,
                   maxLines: 2,
                   textStyle: const TextStyle(color: Colors.white),
                 ),
               ),
             ],
-          ),const SizedBox(height: 13),
+          ),
+
+          const SizedBox(height: 13),
+
           /// ACTION BAR
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -148,88 +175,100 @@ class FeedContainerItem extends StatelessWidget {
                 const CircleAvatar(radius: 10),
                 const SizedBox(width: 5),
                 Expanded(
-                  flex: 2,
                   child: Text(
                     "shared by others",
-                    style: textTheme.bodyMedium!.copyWith(color: Colors.white),
+                    style: widget.textTheme.bodyMedium!
+                        .copyWith(color: Colors.white),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          if (postId == null || ownerId == null) return;
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        if (widget.postId == null || widget.ownerId == null) return;
 
-                          final cubit = context.read<PostCommentCubit>();
+                        final cubit = context.read<PostCommentCubit>();
 
-                          cubit.fetchComments(postId!);
+                        cubit.fetchComments(widget.postId!);
 
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.black,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.black,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(16),
                             ),
-                            builder:
-                                (_) => BlocProvider.value(
-                                  value: cubit,
-                                  child: PostCommentBottomSheet(
-                                    postId: postId!,
-                                    ownerId: ownerId!,
-                                  ),
-                                ),
-                          );
-                        },
-                        child: const Icon(
-                          Icons.message_outlined,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const Icon(Icons.send_rounded, color: Colors.white),
-                      IconButton(
-                        icon: Icon(
-                          isInitiallySaved ? Icons.bookmark : Icons.bookmark_border,
-                          color: isInitiallySaved ? Colors.purple : Colors.white,
-                          size: 28,
-                        ),
-                        onPressed: () async {
-                          if (postId == null || ownerId == null) return;
-
-                          final cubit = context.read<SavePostCubit>();
-
-                          await cubit.toggleSave(
-                            postId: postId!,
-                            ownerId: ownerId!,
-                            isCurrentlySaved: isInitiallySaved,
-                          );
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(isInitiallySaved ? 'Post unsaved' : 'Post saved!'),
-                              duration: const Duration(seconds: 1),
+                          ),
+                          builder:
+                              (_) => BlocProvider.value(
+                            value: cubit,
+                            child: PostCommentBottomSheet(
+                              postId: widget.postId!,
+                              ownerId: widget.ownerId!,
                             ),
-                          );
-                        },
+                          ),
+                        );
+                      },
+                      child: const Icon(
+                        Icons.message_outlined,
+                        color: Colors.white,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 15),
+                    const Icon(Icons.send_rounded, color: Colors.white),
+                    IconButton(
+                      icon: Icon(
+                        isSaved ? Icons.bookmark : Icons.bookmark_border,
+                        color: isSaved ? Colors.purple : Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: () async {
+                        if (widget.postId == null || widget.ownerId == null) {
+                          return;
+                        }
+
+                        final cubit = context.read<SavePostCubit>();
+
+                        // Optimistic UI
+                        setState(() {
+                          isSaved = !isSaved;
+                        });
+
+                        await cubit.toggleSave(
+                          postId: widget.postId!,
+                          ownerId: widget.ownerId!,
+                          isCurrentlySaved: !isSaved,
+                        );
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isSaved ? 'Post saved!' : 'Post unsaved',
+                            ),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          Divider(color: Colors.grey.shade200, thickness: 0.5,)
+
+          Divider(
+            color: Colors.grey.shade200,
+            thickness: 0.5,
+          ),
         ],
       ),
     );
   }
 }
+
 
 /// ─────────────────────────────────────────────
 /// COMMENT BOTTOM SHEET
@@ -348,7 +387,7 @@ class PostCommentBottomSheet extends StatelessWidget {
                     );
                   }
 
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: MyyDocLoader());
                 },
               ),
             ),

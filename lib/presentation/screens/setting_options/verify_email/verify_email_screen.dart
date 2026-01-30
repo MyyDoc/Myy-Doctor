@@ -3,7 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/screens/setting_options/verify_email/widgets/change_email_widget.dart';
 import 'package:myydoctor/presentation/screens/setting_options/verify_email/widgets/current_email_widget.dart';
-import 'package:myydoctor/presentation/widgets/colours.dart'; // Assuming this has your colors
+import 'package:myydoctor/presentation/widgets/colours.dart';
+
+import '../../../../core/loader/loader.dart'; // Assuming this has your colors
 
 class VerifyEmailScreen extends StatefulWidget {
   const VerifyEmailScreen({super.key});
@@ -87,7 +89,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: MyyDocLoader()),
       );
     }
 

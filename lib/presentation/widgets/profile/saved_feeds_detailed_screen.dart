@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:myydoctor/presentation/widgets/home/feed_container_item.dart';
 import 'package:myydoctor/repository/pic_post_repository.dart';
 
+import '../../../core/loader/loader.dart';
+
 class SavedFeedsDetailedScreen extends StatefulWidget {
   const SavedFeedsDetailedScreen({super.key});
 
@@ -47,7 +49,7 @@ class _SavedFeedsDetailedScreenState extends State<SavedFeedsDetailedScreen> {
             stream: PicPostRepository().getPostsStream(useOwnerProfile: false, anotherProfile: ""),
             builder: (context, asyncSnapshot) {
               if (!asyncSnapshot.hasData) {
-                return Center(child: CircularProgressIndicator());
+                return Center(child: MyyDocLoader());
               }
               final posts = asyncSnapshot.data!;
               return ListView.separated(

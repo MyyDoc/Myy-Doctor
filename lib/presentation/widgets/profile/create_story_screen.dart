@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:myydoctor/core/loader/loader.dart';
 import 'package:provider/provider.dart';
 import 'package:vs_story_designer/vs_story_designer.dart';
 
@@ -170,7 +171,7 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
                   context: context,
                   barrierDismissible: false,
                   builder: (_) => const Center(
-                    child: CircularProgressIndicator(),
+                    child: MyyDocLoader(),
                   ),
                 );
 

@@ -126,7 +126,11 @@ class ChatService {
 
     print("getUserChats → listening for UID: $_currentUserId");
 
-    return _chatsRef.orderByChild('lastMessageTime').onValue.map((event) {
+    return _chatsRef
+        .orderByChild('lastMessageTime')
+        .onValue
+        .asBroadcastStream()
+        .map((event) {
       final snap = event.snapshot;
 
       print("----------------------------------------");

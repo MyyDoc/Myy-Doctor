@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myydoctor/core/loader/loader.dart';
 import 'package:myydoctor/presentation/screens/home/homescreen.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
 import 'package:myydoctor/presentation/widgets/colours.dart';
@@ -96,9 +97,7 @@ class PatientPage extends StatelessWidget {
                         height: screenHeight,
                         color: Colors.black.withOpacity(0.5),
                         child: const Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                          ),
+                          child: MyyDocLoader()
                         ),
                       ),
                     ],

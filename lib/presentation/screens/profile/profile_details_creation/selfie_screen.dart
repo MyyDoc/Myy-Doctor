@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:myydoctor/core/loader/loader.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/age_verification_screen.dart.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_pic/save_profile_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/bloc/save_profile_preference/save_profile_preference_cubit.dart';
@@ -131,9 +132,7 @@ class _SelfieScreenState extends State<SelfieScreen> {
               },
               builder: (context, state) {
                 if(state is SaveProfilePicCubitLoadingState){
-                  return const CircularProgressIndicator(
-                    color: Colors.white,
-                  );
+                  return const MyyDocLoader();
                 }
                 return IconButton(
                   onPressed: () {
