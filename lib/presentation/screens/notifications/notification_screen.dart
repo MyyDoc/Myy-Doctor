@@ -138,6 +138,7 @@ class _NotificationTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
               radius: 28,
@@ -148,11 +149,16 @@ class _NotificationTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
+
+            /// TEXT CONTENT
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 6,
+                    runSpacing: 4,
                     children: [
                       Text(
                         senderName,
@@ -161,15 +167,13 @@ class _NotificationTile extends StatelessWidget {
                           fontSize: 16,
                         ),
                       ),
-                      const SizedBox(width: 6),
                       Text(
                         _titleForType(notification.type),
                         style: const TextStyle(
                           fontSize: 16,
                         ),
                       ),
-                      if (isUnread) ...[
-                        const SizedBox(width: 8),
+                      if (isUnread)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -187,12 +191,12 @@ class _NotificationTile extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ],
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     notification.text,
+                    softWrap: true,
                     style: TextStyle(
                       color: Colors.grey[700],
                       fontSize: 14,

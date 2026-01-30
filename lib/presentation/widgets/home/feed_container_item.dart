@@ -43,6 +43,8 @@ class FeedContainerItem extends StatefulWidget {
 class _FeedContainerItemState extends State<FeedContainerItem> {
   late bool isSaved;
 
+  final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
   @override
   void initState() {
     super.initState();
@@ -110,12 +112,15 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
                       );
                     }
                   },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Delete Post'),
-                    ),
-                  ],
+                  itemBuilder:
+                      (context) => [
+                        if (currentUserId != null &&
+                            widget.ownerId == currentUserId)
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Delete Post'),
+                          ),
+                      ],
                 ),
               ],
             ),
@@ -129,12 +134,16 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => FullPostViewScreen(
-                    imageUrl: widget.postImageUrl ?? "",
-                    personName: widget.personName ?? "Unknown",
-                    profileImageUrl: widget.profileImageUrl ?? "",
-                    caption: widget.caption,
-                  ),
+                  builder:
+                      (_) => FullPostViewScreen(
+                        imageUrl:
+                            widget.postImageUrl ?? "https://fallback-url.com",
+                        personName: widget.personName ?? "Unknown",
+                        profileImageUrl:
+                            widget.profileImageUrl ??
+                            "https://default-profile.com",
+                        caption: widget.caption,
+                      ),
                 ),
               );
             },
@@ -142,7 +151,8 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
               width: double.infinity,
               height: 300,
               child: Image.network(
-                widget.postImageUrl ?? "",
+                widget.postImageUrl ??
+                    "https://imgs.search.brave.com/8SB8c98eLDaKU2XtzBkYn-3RMNGpc37mjtZVHwmXOHI/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9h/ZXJpYWwtdmlldy1n/cmVlbi1tb3VudGFp/bm91cy1zY2VuZXJ5/LXN1bnJpc2VfMTgx/NjI0LTEyMzE5Lmpw/Zz9zZW10PWFpc19o/eWJyaWQmdz03NDA",
                 fit: BoxFit.cover,
               ),
             ),
@@ -177,8 +187,9 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
                 Expanded(
                   child: Text(
                     "shared by others",
-                    style: widget.textTheme.bodyMedium!
-                        .copyWith(color: Colors.white),
+                    style: widget.textTheme.bodyMedium!.copyWith(
+                      color: Colors.white,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
