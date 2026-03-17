@@ -18,24 +18,25 @@ class GlobalPostFeed extends StatefulWidget {
 
 class _GlobalPostFeedState extends State<GlobalPostFeed>
     with AutomaticKeepAliveClientMixin<GlobalPostFeed> {
+
   @override
   bool get wantKeepAlive => true;
+
   late final Stream<List<PicPostModel>> globalUserPostFeed;
+
+  // 🔥 Cache to prevent flicker + reload
+  List<PicPostModel>? _cachedPosts;
 
   @override
   void initState() {
     super.initState();
+
     final bool isAnotherProfile = widget.anotherProfile.isNotEmpty;
 
     globalUserPostFeed = PicPostRepository().getPostsStream(
       useOwnerProfile: !isAnotherProfile,
       anotherProfile: widget.anotherProfile,
     );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   @override
@@ -52,37 +53,61 @@ class _GlobalPostFeedState extends State<GlobalPostFeed>
           colors: [Color(0xFF1F323C), Color(0xFF000000)],
         ),
       ),
-      child: StreamBuilder(
-        stream: globalUserPostFeed,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: MyyDocLoader());
-          }
 
-          final posts = snapshot.data!;
+      // ✅ Bloc stays stable (not recreated per item)
+      child: BlocProvider(
+        create: (context) => PostCommentCubit(),
 
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            itemCount: posts.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 30),
-            itemBuilder: (context, index) {
-              return BlocProvider(
-                create: (context) => PostCommentCubit(),
-                child: FeedContainerItem(
-                  caption: posts[index].caption,
-                  isDoctor: posts[index].isOwnerDoctor,
-                  isInitiallySaved: posts[index].isSaved,
-                  textTheme: textTheme,
-                  postId: posts[index].postId,
-                  ownerId: posts[index].ownerId,
-                  postImageUrl: posts[index].imageUrl,
-                  personName: posts[index].name ?? 'no name here',
-                  profileImageUrl: posts[index].profileImageUrl,
-                ),
-              );
-            },
-          );
-        },
+        child: StreamBuilder<List<PicPostModel>>(
+          stream: globalUserPostFeed,
+          builder: (context, snapshot) {
+
+            // ✅ Cache latest data
+            if (snapshot.hasData) {
+              _cachedPosts = snapshot.data;
+            }
+
+            final posts = _cachedPosts;
+
+            // 🔥 Show loader ONLY first time
+            if (posts == null) {
+              return const Center(child: MyyDocLoader());
+            }
+
+            return ListView.separated(
+              addAutomaticKeepAlives: true,
+              addRepaintBoundaries: true,
+              cacheExtent: 1000,
+
+              padding: const EdgeInsets.symmetric(vertical: 10),
+
+              itemCount: posts.length,
+
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: 30),
+
+              itemBuilder: (context, index) {
+                final post = posts[index];
+
+                return KeyedSubtree(
+                  key: ValueKey(post.postId),
+
+                  child: FeedContainerItem(
+                    caption: post.caption,
+                    isDoctor: post.isOwnerDoctor,
+                    isInitiallySaved: post.isSaved,
+                    textTheme: textTheme,
+                    postId: post.postId,
+                    ownerId: post.ownerId,
+                    postImageUrl: post.imageUrl,
+                    personName: post.name ?? 'no name here',
+                    profileImageUrl: post.profileImageUrl,
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

@@ -17,6 +17,7 @@ import 'package:myydoctor/presentation/screens/profile/profile_details_creation/
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/reel_post_uploding.dart';
 import 'package:myydoctor/presentation/screens/profile/story_view/bloc/fetch_story_cubit/fetch_my_stories_cubit.dart';
 import 'package:myydoctor/presentation/screens/profile/story_view/watch_story_screen.dart';
+import 'package:myydoctor/presentation/widgets/feed_image.dart';
 import 'package:myydoctor/presentation/widgets/home/story_circle.dart';
 import 'package:myydoctor/presentation/widgets/profile/create_story_screen.dart';
 import 'package:myydoctor/presentation/widgets/profile/global_post_feed.dart';
@@ -54,9 +55,14 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   bool _tabControllerInitialized = false; // Prevent multiple initializations
 
+  late int tabCount;
+
   @override
   void initState() {
     super.initState();
+
+    tabCount = widget.userId == null ? 3 : 1;
+    _tabController = TabController(length: tabCount, vsync: this);
 
     final targetUserId =
         widget.userId ?? FirebaseAuth.instance.currentUser?.uid ?? "";
@@ -72,6 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       context.read<ProfileCubit>().listenToUserProfile();
       _listenToFollowersAndFollowing(targetUserId);
     }
+
     showPostCount();
   }
 
@@ -458,7 +465,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           final targetUserId =
               widget.userId ?? FirebaseAuth.instance.currentUser!.uid;
           await Future.wait([
-            context.read<FetchMyStoriesCubit>().fetchMyStories(userId: targetUserId),
+            context.read<FetchMyStoriesCubit>().fetchMyStories(
+              userId: targetUserId,
+            ),
             if (widget.userId != null) ...[
               context.read<FetchUserDetailsCubit>().fetchUserById(targetUserId),
               _checkIfFollowing(targetUserId),
@@ -477,9 +486,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       BlocBuilder<FetchUserCubit, FetchUserState>(
                         builder: (context, state) {
                           if (state is FetchUserLoading) {
-                            return const Center(
-                              child: MyyDocLoader(),
-                            );
+                            return const Center(child: MyyDocLoader());
                           }
                           if (state is FetchUserError) {
                             return Center(child: Text(state.error));
@@ -488,17 +495,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             final isDoctorProfile =
                                 state.isDoctor || widget.userId != null;
 
-                              isDoctor = state.isDoctor;
-
-                            // // Initialize TabController only once after build
-                            // WidgetsBinding.instance.addPostFrameCallback((_) {
-                            //   if (mounted && showExtraTabs) {
-                            //     _initializeTabController(isDoctorProfile);
-                            //     setState(
-                            //       () {},
-                            //     ); // Ensure rebuild after initialization
-                            //   }
-                            // });
+                            isDoctor = state.isDoctor;
 
                             if (isDoctorProfile) {
                               return Container(
@@ -701,9 +698,13 @@ class _ProfileScreenState extends State<ProfileScreen>
           children: [
             CircleAvatar(
               radius: 50,
-              backgroundImage: NetworkImage(
-                user.profilePicture ??
-                    'https://ui-avatars.com/api/?name=${Uri.encodeComponent(user.fullName)}&background=0D8ABC&color=fff',
+              child: ClipOval(
+                child: FeedImage(
+                  fit: BoxFit.fill,
+                   url: 
+                  user.profilePicture ??
+                      'https://ui-avatars.com/api/?name=${Uri.encodeComponent(user.fullName)}&background=0D8ABC&color=fff',
+                ),
               ),
             ),
             const SizedBox(width: 15),
@@ -903,9 +904,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ],
         ),
-        if(widget.userId != null || isDoctor)
-        const SizedBox(height: 15),
-        if(widget.userId != null ||  isDoctor)
+        if (widget.userId != null || isDoctor) const SizedBox(height: 15),
+        if (widget.userId != null || isDoctor)
           BlocBuilder<FetchMyStoriesCubit, FetchMyStoriesState>(
             builder: (context, state) {
               if (state is FetchMyStoriesLoading ||
@@ -938,9 +938,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                             ),
                           );
                           if (result == "success") {
-                            context
-                                .read<FetchMyStoriesCubit>()
-                                .fetchMyStories(userId: widget.userId ?? FirebaseAuth.instance.currentUser?.uid ?? "");
+                            context.read<FetchMyStoriesCubit>().fetchMyStories(
+                              userId:
+                                  widget.userId ??
+                                  FirebaseAuth.instance.currentUser?.uid ??
+                                  "",
+                            );
                           }
                         },
                         child: StoryCircleItem(

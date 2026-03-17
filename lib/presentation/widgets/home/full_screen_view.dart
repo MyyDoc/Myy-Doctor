@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/widgets/feed_image.dart';
 import 'package:myydoctor/presentation/widgets/home/show_more_text.dart';
 
 class FullPostViewScreen extends StatelessWidget {
@@ -32,9 +33,7 @@ class FullPostViewScreen extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                CircleAvatar(
-                  backgroundImage: NetworkImage(profileImageUrl),
-                ),
+                CircleAvatar(child: ClipOval(child: FeedImage(url:  profileImageUrl))),
                 const SizedBox(width: 10),
                 Text(
                   personName,
@@ -51,11 +50,7 @@ class FullPostViewScreen extends StatelessWidget {
           /// Full Image
           Expanded(
             child: InteractiveViewer(
-              child: Image.network(
-                imageUrl,
-                width: double.infinity,
-                fit: BoxFit.contain,
-              ),
+              child: FeedImage(url: imageUrl)
             ),
           ),
 
