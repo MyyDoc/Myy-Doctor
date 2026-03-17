@@ -5,12 +5,12 @@ import 'package:myydoctor/core/loader/loader.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/reel_post_uploding/bloc/upload_pic_cubit/upload_pic_cubit.dart';
 import 'package:myydoctor/presentation/screens/reels/bloc/post_comment_cubit/post_comment_cubit.dart';
+import 'package:myydoctor/presentation/widgets/feed_image.dart';
 import 'package:myydoctor/presentation/widgets/home/show_more_text.dart';
 
 import '../../screens/profile/reel_post_uploding/bloc/save_post_cubit/save_post_cubit.dart';
 import '../../screens/profile/story_view/bloc/fetch_story_cubit/fetch_my_stories_cubit.dart';
 import 'full_screen_view.dart';
-
 
 class FeedContainerItem extends StatefulWidget {
   final String? postImageUrl;
@@ -64,31 +64,36 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
               children: [
                 GestureDetector(
                   // In FeedContainerItem
-                  onTap: widget.isDoctor
-                      ? () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ProfileScreen(
-                          userId: widget.ownerId,
-                        ),
-                      ),
-                    );
+                  onTap:
+                      widget.isDoctor
+                          ? () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (_) =>
+                                        ProfileScreen(userId: widget.ownerId),
+                              ),
+                            );
 
-                    if (mounted) {
-                      final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
-                      context.read<FetchMyStoriesCubit>().fetchMyStories(
-                        userId: currentUserId,
-                      );
-                    }
-                  }
-                      : null,
+                            if (mounted) {
+                              final currentUserId =
+                                  FirebaseAuth.instance.currentUser?.uid ?? "";
+                              context
+                                  .read<FetchMyStoriesCubit>()
+                                  .fetchMyStories(userId: currentUserId);
+                            }
+                          }
+                          : null,
                   child: Row(
                     children: [
                       CircleAvatar(
-                        backgroundImage: NetworkImage(
-                          widget.profileImageUrl ??
-                              "https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc",
+                        child: ClipOval(
+                          child: FeedImage(
+                            url:
+                                widget.profileImageUrl ??
+                                "https://imgs.search.brave.com/Q40jLVzOHGTUVtrYicyrl9Wmxx3nCnz3xr9Crh_Nm_4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJzLmNvbS9p/bWFnZXMvaGQvY2xv/c2UtdXAtaW1hZ2Ut/b2YtcGF1bC13YWxr/ZXItb2d1MWRheWd0/YnRramxlei5qcGc",
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -104,7 +109,10 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
                 ),
                 const Spacer(),
                 PopupMenuButton(
-                  icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                  icon: const Icon(
+                    Icons.more_vert_rounded,
+                    color: Colors.white,
+                  ),
                   onSelected: (value) {
                     if (value == 'delete' && widget.postId != null) {
                       context.read<UploadPicCubit>().deletePost(
@@ -150,10 +158,10 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
             child: SizedBox(
               width: double.infinity,
               height: 300,
-              child: Image.network(
-                widget.postImageUrl ??
+              child: FeedImage(
+                url:
+                    widget.postImageUrl ??
                     "https://imgs.search.brave.com/8SB8c98eLDaKU2XtzBkYn-3RMNGpc37mjtZVHwmXOHI/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9h/ZXJpYWwtdmlldy1n/cmVlbi1tb3VudGFp/bm91cy1zY2VuZXJ5/LXN1bnJpc2VfMTgx/NjI0LTEyMzE5Lmpw/Zz9zZW10PWFpc19o/eWJyaWQmdz03NDA",
-                fit: BoxFit.cover,
               ),
             ),
           ),
@@ -198,7 +206,8 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        if (widget.postId == null || widget.ownerId == null) return;
+                        if (widget.postId == null || widget.ownerId == null)
+                          return;
 
                         final cubit = context.read<PostCommentCubit>();
 
@@ -215,12 +224,12 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
                           ),
                           builder:
                               (_) => BlocProvider.value(
-                            value: cubit,
-                            child: PostCommentBottomSheet(
-                              postId: widget.postId!,
-                              ownerId: widget.ownerId!,
-                            ),
-                          ),
+                                value: cubit,
+                                child: PostCommentBottomSheet(
+                                  postId: widget.postId!,
+                                  ownerId: widget.ownerId!,
+                                ),
+                              ),
                         );
                       },
                       child: const Icon(
@@ -270,16 +279,12 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
             ),
           ),
 
-          Divider(
-            color: Colors.grey.shade200,
-            thickness: 0.5,
-          ),
+          Divider(color: Colors.grey.shade200, thickness: 0.5),
         ],
       ),
     );
   }
 }
-
 
 /// ─────────────────────────────────────────────
 /// COMMENT BOTTOM SHEET
@@ -339,7 +344,7 @@ class PostCommentBottomSheet extends StatelessWidget {
 
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundImage: NetworkImage(c.userProfilePicUrl),
+                            child: ClipOval(child: FeedImage(url: c.userProfilePicUrl)),
                           ),
                           title: Row(
                             children: [
