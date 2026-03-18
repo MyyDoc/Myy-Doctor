@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myydoctor/presentation/screens/profile/blocked_users_screen.dart';
 import 'package:myydoctor/presentation/screens/profile/profile_details_creation/medical_registration.dart';
 import 'package:myydoctor/presentation/screens/setting_options/notifications/notification_screen..dart';
 import 'package:myydoctor/presentation/screens/setting_options/privacy/privacy_screen.dart';
@@ -76,6 +77,9 @@ class SettingsPage extends StatelessWidget {
           _SettingsTile(title: "Privacy", ontap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyScreen(),)),),
            _SettingsTile(title: "Feedback", ontap: () {
             
+          },),
+          _SettingsTile(title: "Blocked users", ontap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => BlockedUsersScreen(),));
           },),
            _SettingsTile(title: "Version 6.18.5", showArrow: false, ontap: () {
              

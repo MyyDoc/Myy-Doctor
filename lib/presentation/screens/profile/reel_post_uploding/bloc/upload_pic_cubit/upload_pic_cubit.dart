@@ -78,6 +78,54 @@ class UploadPicCubit extends Cubit<UploadPicState> {
     }
   }
 
+  Future<bool> reportPost({
+    required String postId,
+    required String postOwnerId,
+    required String reason,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    emit(UploadLoadingState());
+
+    try {
+      final uid = user?.uid;
+
+      if (uid == null) {
+        emit(UploadPicErrorState(error: 'User not logged in'));
+        return false;
+      }
+
+      // 🔥 Create report entry
+      final reportRef =
+      FirebaseDatabase.instance.ref('postReports').push();
+
+      final reportId = reportRef.key;
+
+      if (reportId == null) {
+        emit(UploadPicErrorState(error: 'Failed to create report'));
+        return false;
+      }
+
+      final reportData = {
+        'reportId': reportId,
+        'postId': postId,
+        'ownerId': postOwnerId,
+        'reportedBy': uid,
+        'reason': reason,
+        'timestamp': ServerValue.timestamp,
+      };
+
+      await reportRef.set(reportData);
+
+      emit(UploadPicSuccessState());
+
+      return true;
+    } catch (e) {
+      emit(UploadPicErrorState(error: e.toString()));
+      return false;
+    }
+  }
+
   Future<void> deletePost({required String postId}) async {
     final user = FirebaseAuth.instance.currentUser;
 

@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myydoctor/core/loader/loader.dart';
 import 'package:myydoctor/data/user/story_model.dart';
 import 'package:myydoctor/data/user/user_model.dart';
+import 'package:myydoctor/domain/user/user_repository.dart';
 import 'package:myydoctor/presentation/screens/auth/login.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_list.dart';
 import 'package:myydoctor/presentation/screens/chat/chat_screen.dart';
@@ -53,6 +54,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   StreamSubscription? _followingListener;
 
   bool _tabControllerInitialized = false; // Prevent multiple initializations
+
+  bool userBlocked = false;
 
   @override
   void initState() {
@@ -252,6 +255,159 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
+  void showReportDialog(BuildContext context, String currentUid, String targetUserId) {
+    String selectedReason = "Spam";
+    final primaryColor = const Color(0xFF1F323C);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                children: [
+                  Icon(Icons.report, color: primaryColor),
+                  const SizedBox(width: 10),
+                  Text(
+                    "Report User",
+                    style: TextStyle(
+                      color: primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Select a reason",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // ✅ Option Tile Builder
+                  _buildOptionTile(
+                    title: "Spam",
+                    value: "Spam",
+                    selectedValue: selectedReason,
+                    primaryColor: primaryColor,
+                    onTap: () => setState(() => selectedReason = "Spam"),
+                  ),
+                  _buildOptionTile(
+                    title: "Abusive Content",
+                    value: "Abuse",
+                    selectedValue: selectedReason,
+                    primaryColor: primaryColor,
+                    onTap: () => setState(() => selectedReason = "Abuse"),
+                  ),
+                  _buildOptionTile(
+                    title: "Fake Account",
+                    value: "Fake",
+                    selectedValue: selectedReason,
+                    primaryColor: primaryColor,
+                    onTap: () => setState(() => selectedReason = "Fake"),
+                  ),
+                ],
+              ),
+
+              actionsPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    "Cancel",
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(context);
+
+                    bool result = await UserRepoImplementation().reportUser(
+                      currentUid: currentUid,
+                      targetUserId: targetUserId,
+                      reason: selectedReason,
+                    );
+
+                    if (result) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Report submitted")),
+                      );
+                    }
+                  },
+                  child: const Text("Submit", style: TextStyle(color: Colors.white),),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildOptionTile({
+    required String title,
+    required String value,
+    required String selectedValue,
+    required Color primaryColor,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = value == selectedValue;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryColor.withOpacity(0.08) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? primaryColor : Colors.transparent,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: isSelected ? primaryColor : Colors.grey,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              title,
+              style: TextStyle(
+                color: primaryColor,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _tabController?.dispose();
@@ -278,7 +434,9 @@ class _ProfileScreenState extends State<ProfileScreen>
     });
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: userBlocked ? PreferredSize(
+        preferredSize: Size(0, 0),
+          child: SizedBox()) : AppBar(
         backgroundColor: const Color(0xFF1F323C),
         title: _buildAppBarTitle(textTheme),
         leading: GestureDetector(
@@ -431,8 +589,48 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ),
                 );
+              } else {
+                return PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert, color: Colors.amber),
+                  onSelected: (value) async {
+                    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+                    if (value == 'report') {
+                      showReportDialog(context, currentUid!, widget.userId!);
+                    } else if (value == 'block') {
+                      final result = await UserRepoImplementation().blockUser(currentUid!, widget.userId!);
+
+                      if(result != null && result){
+                        setState(() {
+                          userBlocked = true;
+                        });
+                      }
+                    }
+                  },
+                  itemBuilder:
+                      (BuildContext context) => [
+                        PopupMenuItem(
+                          value: 'report',
+                          child: Row(
+                            children: [
+                              Icon(Icons.report, color: Colors.orange),
+                              SizedBox(width: 10),
+                              Text('Report User'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'block',
+                          child: Row(
+                            children: [
+                              Icon(Icons.block, color: Colors.red),
+                              SizedBox(width: 10),
+                              Text('Block User'),
+                            ],
+                          ),
+                        ),
+                      ],
+                );
               }
-              return const SizedBox.shrink();
             },
           ),
           if (isOwnProfile)
@@ -453,12 +651,75 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
         ],
       ),
-      body: RefreshIndicator(
+      body: userBlocked ? Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 30),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // ✅ Icon
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.block,
+                  color: Colors.red,
+                  size: 60,
+                ),
+              ),
+
+              const SizedBox(height: 25),
+
+              // ✅ Title
+              const Text(
+                "User Blocked",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // ✅ Subtitle
+              const Text(
+                "You will no longer see this user or receive messages from them.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.grey,
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              // ✅ Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text("Continue"),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ) : RefreshIndicator(
         onRefresh: () async {
           final targetUserId =
               widget.userId ?? FirebaseAuth.instance.currentUser!.uid;
           await Future.wait([
-            context.read<FetchMyStoriesCubit>().fetchMyStories(userId: targetUserId),
+            context.read<FetchMyStoriesCubit>().fetchMyStories(
+              userId: targetUserId,
+            ),
             if (widget.userId != null) ...[
               context.read<FetchUserDetailsCubit>().fetchUserById(targetUserId),
               _checkIfFollowing(targetUserId),
@@ -477,9 +738,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       BlocBuilder<FetchUserCubit, FetchUserState>(
                         builder: (context, state) {
                           if (state is FetchUserLoading) {
-                            return const Center(
-                              child: MyyDocLoader(),
-                            );
+                            return const Center(child: MyyDocLoader());
                           }
                           if (state is FetchUserError) {
                             return Center(child: Text(state.error));
@@ -488,7 +747,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             final isDoctorProfile =
                                 state.isDoctor || widget.userId != null;
 
-                              isDoctor = state.isDoctor;
+                            isDoctor = state.isDoctor;
 
                             // // Initialize TabController only once after build
                             // WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -903,9 +1162,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ],
         ),
-        if(widget.userId != null || isDoctor)
-        const SizedBox(height: 15),
-        if(widget.userId != null ||  isDoctor)
+        if (widget.userId != null || isDoctor) const SizedBox(height: 15),
+        if (widget.userId != null || isDoctor)
           BlocBuilder<FetchMyStoriesCubit, FetchMyStoriesState>(
             builder: (context, state) {
               if (state is FetchMyStoriesLoading ||
@@ -938,9 +1196,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                             ),
                           );
                           if (result == "success") {
-                            context
-                                .read<FetchMyStoriesCubit>()
-                                .fetchMyStories(userId: widget.userId ?? FirebaseAuth.instance.currentUser?.uid ?? "");
+                            context.read<FetchMyStoriesCubit>().fetchMyStories(
+                              userId:
+                                  widget.userId ??
+                                  FirebaseAuth.instance.currentUser?.uid ??
+                                  "",
+                            );
                           }
                         },
                         child: StoryCircleItem(
