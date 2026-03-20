@@ -12,126 +12,154 @@ class PicPostRepository {
     required bool useOwnerProfile,
     required String anotherProfile,
   }) {
+    final controller = StreamController<List<PicPostModel>>();
+
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      return Stream.value([]);
+      controller.add([]);
+      return controller.stream;
     }
 
     final uid = currentUser.uid;
-    final targetUid = useOwnerProfile ? null : (anotherProfile.isNotEmpty ? anotherProfile : uid);
+    final targetUid =
+    useOwnerProfile ? null : (anotherProfile.isNotEmpty ? anotherProfile : uid);
 
-    print("getPostsStream → useOwnerProfile: $useOwnerProfile, targetUid: $targetUid");
+    final postsRef = useOwnerProfile
+        ? FirebaseDatabase.instance.ref("posts")
+        : FirebaseDatabase.instance.ref("posts/$targetUid");
 
-    final DatabaseReference postsRef;
-    if (useOwnerProfile) {
-      postsRef = FirebaseDatabase.instance.ref("posts");
-    } else if (targetUid != null && targetUid.isNotEmpty) {
-      postsRef = FirebaseDatabase.instance.ref("posts/$targetUid");
-    } else {
-      return Stream.value([]); // safety
-    }
+    final savedRef = FirebaseDatabase.instance.ref("savedPosts/$uid");
+    final blockedRef =
+    FirebaseDatabase.instance.ref("users/$uid/blockedUsers");
 
-    final DatabaseReference savedRef = FirebaseDatabase.instance.ref("savedPosts/$uid");
+    Set<String> savedPostIds = {};
+    Set<String> blockedUsers = {};
 
-    return savedRef.onValue.asyncExpand((savedEvent) {
-      final Set<String> savedPostIds = {};
-      final savedData = savedEvent.snapshot.value;
-      if (savedData != null && savedData is Map) {
-        savedPostIds.addAll(savedData.keys.cast<String>());
+    Future<void> fetchAndEmit() async {
+      final event = await postsRef.get();
+      final data = event.value;
+
+      if (data == null || data is! Map) {
+        controller.add([]);
+        return;
       }
 
-      return postsRef.onValue.asyncMap((event) async {
-        final data = event.snapshot.value;
-        if (data == null || data is! Map) return <PicPostModel>[];
+      final List<PicPostModel> posts = [];
 
-        final List<PicPostModel> posts = [];
+      if (useOwnerProfile) {
+        final usersMap = data as Map<dynamic, dynamic>;
 
-        if (useOwnerProfile) {
-          // Global: loop over all user IDs
-          final usersMap = data as Map<dynamic, dynamic>;
+        for (final userEntry in usersMap.entries) {
+          final ownerId = userEntry.key as String;
 
-          for (final userEntry in usersMap.entries) {
-            final String ownerId = userEntry.key as String;
-            if (userEntry.value is! Map) continue;
+          // 🚫 Skip blocked users
+          if (blockedUsers.contains(ownerId)) continue;
 
-            final bool isDoctor = await _getIsDoctor(ownerId);
-            final userPostsMap = userEntry.value as Map<dynamic, dynamic>;
+          if (userEntry.value is! Map) continue;
 
-            for (final postEntry in userPostsMap.entries) {
-              final String postId = postEntry.key as String;
-              if (postEntry.value is! Map) continue;
+          final bool isDoctor = await _getIsDoctor(ownerId);
+          final userPostsMap = userEntry.value as Map<dynamic, dynamic>;
 
-              final postMap = postEntry.value as Map<dynamic, dynamic>;
-
-              // Fetch username & profile pic from users/$ownerId (cached if possible)
-              String? name;
-              String? profileImageUrl;
-              final userSnap = await FirebaseDatabase.instance.ref('users/$ownerId').get();
-              if (userSnap.exists && userSnap.value is Map) {
-                final userData = userSnap.value as Map<dynamic, dynamic>;
-                name = userData['username'] as String?;
-                profileImageUrl = userData['profileImageUrl'] as String?;
-              }
-
-              posts.add(PicPostModel(
-                postId: postId,
-                ownerId: ownerId,
-                caption: postMap['caption']?.toString() ?? '',
-                imageUrl: postMap['imageUrl']?.toString() ?? '',
-                likeCount: (postMap['likeCount'] as num?)?.toInt() ?? 0,
-                commentCount: (postMap['commentCount'] as num?)?.toInt() ?? 0,
-                name: name ?? postMap['username']?.toString(),
-                profileImageUrl: profileImageUrl ?? postMap['profileImageUrl']?.toString(),
-                createdAt: (postMap['createdAt'] as num?)?.toInt() ?? 0,
-                isSaved: savedPostIds.contains(postId),
-                isOwnerDoctor: isDoctor,
-              ));
-            }
-          }
-        } else {
-          // Single user (own or another profile)
-          final bool isOwnerDoctor = await _getIsDoctor(targetUid!);
-
-          String? name;
-          String? profileImageUrl;
-          final userSnap = await FirebaseDatabase.instance.ref('users/$targetUid').get();
-          if (userSnap.exists && userSnap.value is Map) {
-            final userData = userSnap.value as Map<dynamic, dynamic>;
-            name = userData['username'] as String?;
-            profileImageUrl = userData['profileImageUrl'] as String?;
-          }
-
-          final postsMap = data as Map<dynamic, dynamic>;
-
-          for (final postEntry in postsMap.entries) {
+          for (final postEntry in userPostsMap.entries) {
             final String postId = postEntry.key as String;
             if (postEntry.value is! Map) continue;
 
             final postMap = postEntry.value as Map<dynamic, dynamic>;
 
+            String? name;
+            String? profileImageUrl;
+
+            final userSnap =
+            await FirebaseDatabase.instance.ref('users/$ownerId').get();
+
+            if (userSnap.exists && userSnap.value is Map) {
+              final userData = userSnap.value as Map<dynamic, dynamic>;
+              name = userData['username'] as String?;
+              profileImageUrl = userData['profileImageUrl'] as String?;
+            }
+
             posts.add(PicPostModel(
               postId: postId,
-              ownerId: targetUid,
+              ownerId: ownerId,
               caption: postMap['caption']?.toString() ?? '',
               imageUrl: postMap['imageUrl']?.toString() ?? '',
               likeCount: (postMap['likeCount'] as num?)?.toInt() ?? 0,
-              commentCount: (postMap['commentCount'] as num?)?.toInt() ?? 0,
+              commentCount:
+              (postMap['commentCount'] as num?)?.toInt() ?? 0,
               name: name ?? postMap['username']?.toString(),
-              profileImageUrl: profileImageUrl ?? postMap['profileImageUrl']?.toString(),
+              profileImageUrl:
+              profileImageUrl ?? postMap['profileImageUrl']?.toString(),
               createdAt: (postMap['createdAt'] as num?)?.toInt() ?? 0,
               isSaved: savedPostIds.contains(postId),
-              isOwnerDoctor: isOwnerDoctor,
+              isOwnerDoctor: isDoctor,
             ));
           }
         }
+      } else {
+        if (blockedUsers.contains(targetUid)) {
+          controller.add([]);
+          return;
+        }
 
-        // Sort newest first
-        posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        final bool isOwnerDoctor = await _getIsDoctor(targetUid!);
 
-        print("Emitting ${posts.length} posts for targetUid: $targetUid");
-        return posts;
-      });
+        final postsMap = data as Map<dynamic, dynamic>;
+
+        for (final postEntry in postsMap.entries) {
+          final String postId = postEntry.key as String;
+          if (postEntry.value is! Map) continue;
+
+          final postMap = postEntry.value as Map<dynamic, dynamic>;
+
+          posts.add(PicPostModel(
+            postId: postId,
+            ownerId: targetUid,
+            caption: postMap['caption']?.toString() ?? '',
+            imageUrl: postMap['imageUrl']?.toString() ?? '',
+            likeCount: (postMap['likeCount'] as num?)?.toInt() ?? 0,
+            commentCount:
+            (postMap['commentCount'] as num?)?.toInt() ?? 0,
+            name: postMap['username']?.toString(),
+            profileImageUrl: postMap['profileImageUrl']?.toString(),
+            createdAt: (postMap['createdAt'] as num?)?.toInt() ?? 0,
+            isSaved: savedPostIds.contains(postId),
+            isOwnerDoctor: isOwnerDoctor,
+          ));
+        }
+      }
+
+      posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      controller.add(posts);
+    }
+
+    // 🔥 Listen to changes
+    savedRef.onValue.listen((event) {
+      final data = event.snapshot.value;
+      savedPostIds = {};
+
+      if (data != null && data is Map) {
+        savedPostIds.addAll(data.keys.cast<String>());
+      }
+
+      fetchAndEmit();
     });
+
+    blockedRef.onValue.listen((event) {
+      final data = event.snapshot.value;
+      blockedUsers = {};
+
+      if (data != null && data is Map) {
+        blockedUsers.addAll(data.keys.cast<String>());
+      }
+
+      fetchAndEmit();
+    });
+
+    postsRef.onValue.listen((_) {
+      fetchAndEmit();
+    });
+
+    return controller.stream;
   }
 
   Stream<List<PicPostModel>> getSavedPostsStream() {
@@ -325,5 +353,19 @@ class PicPostRepository {
   /// Optional: Call this when user logs out or app closes
   static void clearCache() {
     _doctorCache.clear();
+  }
+
+  Future<Set<String>> _getBlockedUsers(String uid) async {
+    final ref = FirebaseDatabase.instance.ref('users/$uid/blockedUsers');
+    final snapshot = await ref.get();
+
+    final Set<String> blocked = {};
+
+    if (snapshot.exists && snapshot.value != null) {
+      final data = snapshot.value as Map<dynamic, dynamic>;
+      blocked.addAll(data.keys.cast<String>());
+    }
+
+    return blocked;
   }
 }
