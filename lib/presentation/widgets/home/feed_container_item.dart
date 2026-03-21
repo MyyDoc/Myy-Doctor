@@ -51,6 +51,114 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
     isSaved = widget.isInitiallySaved;
   }
 
+  void _showReportPostDialog(
+      BuildContext context, {
+        required String postId,
+        required String ownerId,
+      }) {
+    final TextEditingController reasonController = TextEditingController();
+    final primaryColor = const Color(0xFF1F323C);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.report, color: primaryColor),
+              const SizedBox(width: 10),
+              Text(
+                "Report Post",
+                style: TextStyle(
+                  color: primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Tell us what's wrong",
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // ✅ TextField
+              TextField(
+                controller: reasonController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: "Enter reason...",
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  contentPadding: const EdgeInsets.all(12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actionsPadding:
+          const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                "Cancel",
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () async {
+                final reason = reasonController.text.trim();
+
+                if (reason.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Please enter a reason")),
+                  );
+                  return;
+                }
+
+                Navigator.pop(context);
+
+                bool result =
+                await context.read<UploadPicCubit>().reportPost(
+                  postId: postId,
+                  postOwnerId: ownerId,
+                  reason: reason,
+                );
+
+                if (result) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Post reported")),
+                  );
+                }
+              },
+              child: const Text("Submit", style: TextStyle(color: Colors.white),),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -109,14 +217,18 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
                 ),
                 const Spacer(),
                 PopupMenuButton(
-                  icon: const Icon(
-                    Icons.more_vert_rounded,
-                    color: Colors.white,
-                  ),
-                  onSelected: (value) {
+                  icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                  onSelected: (value) async {
                     if (value == 'delete' && widget.postId != null) {
                       context.read<UploadPicCubit>().deletePost(
                         postId: widget.postId!,
+                      );
+                    }
+                    if (value == 'Report' && widget.postId != null) {
+                      _showReportPostDialog(
+                        context,
+                        postId: widget.postId!,
+                        ownerId: widget.ownerId!,
                       );
                     }
                   },
@@ -128,6 +240,10 @@ class _FeedContainerItemState extends State<FeedContainerItem> {
                             value: 'delete',
                             child: Text('Delete Post'),
                           ),
+                        PopupMenuItem(
+                          value: 'Report',
+                          child: Text('report Post'),
+                        ),
                       ],
                 ),
               ],
