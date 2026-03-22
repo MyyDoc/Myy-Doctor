@@ -9,7 +9,7 @@ import 'package:myydoctor/presentation/screens/reels/bloc/reel_comment_cubit/ree
 import 'package:myydoctor/presentation/screens/reels/bloc/reel_feed_cubit/reel_feed_cubit.dart';
 import 'package:myydoctor/presentation/widgets/app_snackbar.dart';
 import 'package:myydoctor/presentation/widgets/feed_image.dart';
-import 'package:video_player/video_player.dart';
+import 'package:cached_video_player_plus/cached_video_player_plus.dart';
 
 import '../../../core/loader/loader.dart';
 import '../../../core/services/chat_service.dart';
@@ -23,47 +23,63 @@ class ReelsScreen extends StatefulWidget {
 
 class _ReelsScreenState extends State<ReelsScreen> {
   final PageController _pageController = PageController();
+  int currentIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
+  void preloadVideo(String url) {
+    final controller = CachedVideoPlayerPlusController.networkUrl(
+      Uri.parse(url),
+    );
+
+    controller.initialize().then((_) {
+      controller.dispose();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: BlocListener<ReelFeedCubit, ReelFeedState>(
-        listener: (context, state) {
-          if (state is ReelFeedError) {
-            showAppSnackBar(context, state.error.toString());
+      body: BlocBuilder<ReelFeedCubit, ReelFeedState>(
+        builder: (context, state) {
+          if (state is ReelFeedLoading) {
+            return const Center(child: MyyDocLoader());
           }
+
+          if (state is ReelFeedLoaded) {
+            return PageView.builder(
+              controller: _pageController,
+              scrollDirection: Axis.vertical,
+              itemCount: state.reels.length,
+              onPageChanged: (index) {
+                setState(() {
+                  currentIndex = index;
+                });
+
+                /// Fetch more
+                if (index >= state.reels.length - 2) {
+                  context.read<ReelFeedCubit>().fetchMore();
+                }
+
+                /// 🔥 Preload next videos
+                if (index + 1 < state.reels.length) {
+                  preloadVideo(state.reels[index + 1].videoUrl);
+                }
+
+                if (index + 2 < state.reels.length) {
+                  preloadVideo(state.reels[index + 2].videoUrl);
+                }
+              },
+              itemBuilder: (_, index) {
+                return FirebaseReelWidget(
+                  reel: state.reels[index],
+                  isActive: index == currentIndex, // 🔥 KEY LINE
+                );
+              },
+            );
+          }
+
+          return const SizedBox();
         },
-        child: BlocBuilder<ReelFeedCubit, ReelFeedState>(
-          builder: (context, state) {
-            if (state is ReelFeedLoading) {
-              return const Center(child: MyyDocLoader());
-            }
-
-            if (state is ReelFeedLoaded) {
-              return PageView.builder(
-                controller: _pageController,
-                scrollDirection: Axis.vertical,
-                itemCount: state.reels.length,
-                onPageChanged: (index) {
-                  if (index >= state.reels.length - 2) {
-                    context.read<ReelFeedCubit>().fetchMore();
-                  }
-                },
-                itemBuilder: (_, index) {
-                  return FirebaseReelWidget(reel: state.reels[index]);
-                },
-              );
-            }
-
-            return const SizedBox();
-          },
-        ),
       ),
     );
   }
@@ -71,27 +87,53 @@ class _ReelsScreenState extends State<ReelsScreen> {
 
 class FirebaseReelWidget extends StatefulWidget {
   final ReelItems reel;
-  const FirebaseReelWidget({super.key, required this.reel});
+  final bool isActive;
+
+  const FirebaseReelWidget({
+    super.key,
+    required this.reel,
+    required this.isActive,
+  });
 
   @override
   State<FirebaseReelWidget> createState() => _FirebaseReelWidgetState();
 }
 
 class _FirebaseReelWidgetState extends State<FirebaseReelWidget> {
-  late VideoPlayerController _controller;
+  late CachedVideoPlayerPlusController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.networkUrl(
-        Uri.parse(widget.reel.videoUrl),
-      )
+
+    _controller = CachedVideoPlayerPlusController.networkUrl(
+      Uri.parse(widget.reel.videoUrl),
+    )
       ..initialize().then((_) {
         if (mounted) {
           setState(() {});
-          _controller.play();
+          if (widget.isActive) {
+            _controller.play();
+          }
         }
       });
+  }
+
+  @override
+  void didUpdateWidget(covariant FirebaseReelWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    /// 🔥 CONTROL PLAY/PAUSE
+    if (widget.isActive) {
+      if (_controller.value.isInitialized &&
+          !_controller.value.isPlaying) {
+        _controller.play();
+      }
+    } else {
+      if (_controller.value.isPlaying) {
+        _controller.pause();
+      }
+    }
   }
 
   @override
@@ -107,13 +149,12 @@ class _FirebaseReelWidgetState extends State<FirebaseReelWidget> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (_) => CommentsBottomSheet(
-            reelId: widget.reel.reelId,
-            reelOwnerId: widget.reel.ownerId,
-          ),
+      builder: (_) => CommentsBottomSheet(
+        reelId: widget.reel.reelId,
+        reelOwnerId: widget.reel.ownerId,
+      ),
     ).whenComplete(() {
-      if (_controller.value.isInitialized) {
+      if (_controller.value.isInitialized && widget.isActive) {
         _controller.play();
       }
     });
@@ -124,46 +165,49 @@ class _FirebaseReelWidgetState extends State<FirebaseReelWidget> {
     return GestureDetector(
       onTap: () {
         if (!_controller.value.isInitialized) return;
-        _controller.value.isPlaying ? _controller.pause() : _controller.play();
+
+        _controller.value.isPlaying
+            ? _controller.pause()
+            : _controller.play();
       },
       child: Stack(
         fit: StackFit.expand,
         children: [
-          /// VIDEO
           _controller.value.isInitialized
               ? FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _controller.value.size.width,
-                  height: _controller.value.size.height,
-                  child: VideoPlayer(_controller),
-                ),
-              )
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: _controller.value.size.width,
+                    height: _controller.value.size.height,
+                    child: CachedVideoPlayerPlus(_controller),
+                  ),
+                )
               : const Center(child: MyyDocLoader()),
 
-          /// USER INFO (BOTTOM LEFT)
+          /// USER INFO
           Positioned(
             left: 16,
             bottom: 80,
             child: GestureDetector(
-              onTap:
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) =>
-                              ProfileScreen(userId: widget.reel.ownerId),
-                    ),
-                  ),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      ProfileScreen(userId: widget.reel.ownerId),
+                ),
+              ),
               child: Row(
                 children: [
                   CircleAvatar(
                     radius: 18,
                     backgroundColor: Colors.grey,
-                    child:
-                        widget.reel.ownerProfilePicUrl.isNotEmpty
-                            ? ClipOval(child: FeedImage(url: widget.reel.ownerProfilePicUrl))
-                            : null,
+                    child: widget.reel.ownerProfilePicUrl.isNotEmpty
+                        ? ClipOval(
+                            child: FeedImage(
+                              url: widget.reel.ownerProfilePicUrl,
+                            ),
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -191,7 +235,7 @@ class _FirebaseReelWidgetState extends State<FirebaseReelWidget> {
             ),
           ),
 
-          /// COMMENT ICON (RIGHT SIDE)
+          /// COMMENTS
           Positioned(
             right: 16,
             bottom: 120,
@@ -213,34 +257,32 @@ class _FirebaseReelWidgetState extends State<FirebaseReelWidget> {
               ],
             ),
           ),
+
+          /// CHAT
           Positioned(
             right: 16,
             bottom: 55,
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: () async {
-                    final chatId = await ChatService().getOrCreateChatRoom(
-                      widget.reel.ownerId,
-                    );
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) =>
-                                ChatScreen(chatId: chatId, isDoctor: true),
-                      ),
-                    );
-                  },
-                  child: SizedBox(
-                    height: 40,
-                    child: Image.asset(
-                      "assets/images/8ad19fdbc58af4bd5b0a3f9441f03fe5c09755ca.png",
-                    ),
+            child: GestureDetector(
+              onTap: () async {
+                final chatId =
+                    await ChatService().getOrCreateChatRoom(
+                  widget.reel.ownerId,
+                );
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ChatScreen(chatId: chatId, isDoctor: true),
                   ),
+                );
+              },
+              child: SizedBox(
+                height: 40,
+                child: Image.asset(
+                  "assets/images/8ad19fdbc58af4bd5b0a3f9441f03fe5c09755ca.png",
                 ),
-                const SizedBox(height: 4),
-              ],
+              ),
             ),
           ),
         ],
@@ -260,16 +302,20 @@ class CommentsBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<CommentsBottomSheet> createState() => _CommentsBottomSheetState();
+  State<CommentsBottomSheet> createState() =>
+      _CommentsBottomSheetState();
 }
 
 class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _controller =
+      TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    context.read<ReelCommentCubit>().fetchComments(widget.reelId);
+    context
+        .read<ReelCommentCubit>()
+        .fetchComments(widget.reelId);
   }
 
   void _post() {
@@ -277,17 +323,18 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     if (text.isEmpty) return;
 
     context.read<ReelCommentCubit>().postComment(
-      reelId: widget.reelId,
-      reelOwnerId: widget.reelOwnerId,
-      text: text,
-    );
+          reelId: widget.reelId,
+          reelOwnerId: widget.reelOwnerId,
+          text: text,
+        );
 
     _controller.clear();
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final currentUid =
+        FirebaseAuth.instance.currentUser?.uid;
 
     return BlocListener<ReelCommentCubit, ReelCommentState>(
       listener: (context, state) {
@@ -303,11 +350,13 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
           return Container(
             decoration: const BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
               children: [
                 const SizedBox(height: 12),
+
                 Container(
                   width: 40,
                   height: 4,
@@ -316,44 +365,59 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
+
                 const SizedBox(height: 12),
+
                 const Text(
                   "Comments",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
+
                 const Divider(),
 
                 /// COMMENTS
                 Expanded(
-                  child: BlocBuilder<ReelCommentCubit, ReelCommentState>(
+                  child: BlocBuilder<ReelCommentCubit,
+                      ReelCommentState>(
                     builder: (context, state) {
                       if (state is CommentLoading) {
-                        return const Center(child: MyyDocLoader());
+                        return const Center(
+                          child: MyyDocLoader(),
+                        );
                       }
 
                       if (state is CommentLoaded) {
                         if (state.comments.isEmpty) {
-                          return const Center(child: Text("No comments yet"));
+                          return const Center(
+                            child: Text("No comments yet"),
+                          );
                         }
 
                         return ListView.builder(
                           controller: scrollController,
-                          padding: const EdgeInsets.only(bottom: 80),
+                          padding:
+                              const EdgeInsets.only(bottom: 80),
                           itemCount: state.comments.length,
                           itemBuilder: (_, i) {
-                            final ReelComment c = state.comments[i];
-                            final isOwner = c.userId == currentUid;
+                            final ReelComment c =
+                                state.comments[i];
+                            final isOwner =
+                                c.userId == currentUid;
 
                             return ListTile(
                               leading: CircleAvatar(
-                                child:
-                                    c.userProfilePicUrl.isNotEmpty
-                                        ? ClipOval(
-                                          child: FeedImage(
-                                            url: c.userProfilePicUrl,
-                                          ),
-                                        )
-                                        : null,
+                                child: c.userProfilePicUrl
+                                        .isNotEmpty
+                                    ? ClipOval(
+                                        child: FeedImage(
+                                          url:
+                                              c.userProfilePicUrl,
+                                        ),
+                                      )
+                                    : null,
                               ),
                               title: Row(
                                 children: [
@@ -361,35 +425,40 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                                     child: Text(
                                       c.userName,
                                       style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight:
+                                            FontWeight.bold,
                                       ),
                                     ),
                                   ),
                                   if (isOwner)
                                     PopupMenuButton<String>(
                                       onSelected: (value) {
-                                        if (value == 'delete') {
+                                        if (value ==
+                                            'delete') {
                                           context
-                                              .read<ReelCommentCubit>()
+                                              .read<
+                                                  ReelCommentCubit>()
                                               .deleteComment(
-                                                reelId: widget.reelId,
-                                                reelOwnerId: widget.reelOwnerId,
-                                                commentId: c.commentId,
+                                                reelId: widget
+                                                    .reelId,
+                                                reelOwnerId: widget
+                                                    .reelOwnerId,
+                                                commentId:
+                                                    c.commentId,
                                               );
                                         }
                                       },
-                                      itemBuilder:
-                                          (_) => [
-                                            const PopupMenuItem(
-                                              value: 'delete',
-                                              child: Text(
-                                                'Delete',
-                                                style: TextStyle(
-                                                  color: Colors.red,
-                                                ),
-                                              ),
+                                      itemBuilder: (_) => [
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text(
+                                            'Delete',
+                                            style: TextStyle(
+                                              color: Colors.red,
                                             ),
-                                          ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                 ],
                               ),
@@ -407,21 +476,26 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                 /// INPUT
                 SafeArea(
                   child: Padding(
-                    padding: MediaQuery.of(context).viewInsets,
+                    padding:
+                        MediaQuery.of(context).viewInsets,
                     child: Row(
                       children: [
                         const SizedBox(width: 12),
                         Expanded(
                           child: TextField(
                             controller: _controller,
-                            decoration: const InputDecoration(
+                            decoration:
+                                const InputDecoration(
                               hintText: "Add a comment...",
                               border: InputBorder.none,
                             ),
                             onSubmitted: (_) => _post(),
                           ),
                         ),
-                        TextButton(onPressed: _post, child: const Text("Post")),
+                        TextButton(
+                          onPressed: _post,
+                          child: const Text("Post"),
+                        ),
                       ],
                     ),
                   ),
