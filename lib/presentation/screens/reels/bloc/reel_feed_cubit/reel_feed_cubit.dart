@@ -14,15 +14,20 @@ class ReelFeedCubit extends Cubit<ReelFeedState> {
 
   bool _isFetching = false;
   bool _hasMore = true;
-  String? _lastKey;
+
+  String? _lastKey; // ✅ go back to key-based cursor
 
   final List<ReelItems> _reels = [];
 
-  /// INITIAL LOAD
+  static const int _maxCache = 30;
+
+  /// ================== INITIAL ==================
   Future<void> fetchInitial() async {
     if (_isFetching) return;
+
     _isFetching = true;
     _hasMore = true;
+    _lastKey = null;
 
     emit(ReelFeedLoading());
 
@@ -32,32 +37,36 @@ class ReelFeedCubit extends Cubit<ReelFeedState> {
           .get();
 
       _parseSnapshot(snapshot, clear: true);
-    } catch (_) {
+    } catch (e) {
+      print("❌ INITIAL ERROR: $e");
       emit(ReelFeedError('Failed to load reels'));
     } finally {
       _isFetching = false;
     }
   }
 
-  /// FETCH MORE
+  /// ================== FETCH MORE ==================
   Future<void> fetchMore() async {
     if (_isFetching || !_hasMore || _lastKey == null) return;
+
     _isFetching = true;
 
     try {
       final snapshot = await _db
           .endAt(_lastKey)
-          .limitToLast(_pageSize + 1) // +1 overlap
+          .limitToLast(_pageSize + 1)
           .get();
 
       _parseSnapshot(snapshot);
-    } catch (_) {
+    } catch (e) {
+      print("❌ FETCH MORE ERROR: $e");
       emit(ReelFeedError('Failed to load more reels'));
     } finally {
       _isFetching = false;
     }
   }
 
+  /// ================== PARSE ==================
   void _parseSnapshot(
     DataSnapshot snapshot, {
     bool clear = false,
@@ -69,22 +78,22 @@ class ReelFeedCubit extends Cubit<ReelFeedState> {
     }
 
     final raw = snapshot.value;
+
     if (raw is! Map) {
       _hasMore = false;
       emit(ReelFeedLoaded(List.from(_reels)));
       return;
     }
 
-    final entries = (raw)
-        .entries
+    final entries = raw.entries
         .map((e) => MapEntry(e.key.toString(), e.value))
         .toList();
 
-    // Keys are naturally ordered oldest → newest
+    /// 🔥 SORT by key (stable + fast)
     entries.sort((a, b) => a.key.compareTo(b.key));
 
-    // Remove overlap (already loaded lastKey)
-    if (_lastKey != null && entries.isNotEmpty) {
+    /// 🔥 REMOVE DUPLICATE
+    if (_lastKey != null) {
       entries.removeWhere((e) => e.key == _lastKey);
     }
 
@@ -97,23 +106,40 @@ class ReelFeedCubit extends Cubit<ReelFeedState> {
     final List<ReelItems> fetched = [];
 
     for (final entry in entries) {
-      if (entry.value is Map) {
-        try {
-          final Map<String, dynamic> normalized = {};
-          (entry.value as Map).forEach((k, v) {
-            normalized[k.toString()] = v;
-          });
+      try {
+        final Map<String, dynamic> normalized = {};
 
-          fetched.add(ReelItems.fromMap(normalized));
-        } catch (_) {}
+        (entry.value as Map).forEach((k, v) {
+          normalized[k.toString()] = v;
+        });
+
+        final reel = ReelItems.fromMap(normalized);
+
+        if (reel.videoUrl.isNotEmpty) {
+          fetched.add(reel);
+        }
+      } catch (e) {
+        print("❌ PARSE ERROR: $e");
       }
     }
 
-    // 🔑 UPDATE CURSOR TO OLDEST LOADED
+    if (fetched.isEmpty) {
+      emit(ReelFeedLoaded(List.from(_reels)));
+      return;
+    }
+
+    /// 🔥 update cursor (oldest key)
     _lastKey = entries.first.key;
 
     if (clear) _reels.clear();
-    _reels.addAll(fetched.reversed); // newest on top
+
+    /// newest first
+    _reels.addAll(fetched.reversed);
+
+    /// 🔥 MEMORY CONTROL
+    if (_reels.length > _maxCache) {
+      _reels.removeRange(0, _reels.length - _maxCache);
+    }
 
     emit(ReelFeedLoaded(List.from(_reels)));
   }

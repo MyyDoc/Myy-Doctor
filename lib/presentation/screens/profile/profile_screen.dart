@@ -54,7 +54,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   StreamSubscription? _followersListener;
   StreamSubscription? _followingListener;
 
-  bool _tabControllerInitialized = false; // Prevent multiple initializations
 
   bool userBlocked = false;
 
