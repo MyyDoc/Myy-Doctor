@@ -5,14 +5,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:meta/meta.dart';
-
+import 'package:myydoctor/services/compress_image.dart';
 part 'upload_story_state.dart';
 
 class UploadStoryCubit extends Cubit<UploadStoryState> {
   UploadStoryCubit() : super(UploadStoryInitial());
 
-  /// Upload a story image edited from VSStoryDesigner
-  /// [editedFilePath] comes directly from onDone callback (String path)
   uploadStory({required String editedFilePath}) async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -25,14 +23,24 @@ class UploadStoryCubit extends Cubit<UploadStoryState> {
         return;
       }
 
-      final file = File(editedFilePath);
-      if (!await file.exists()) {
+      final originalFile = File(editedFilePath);
+      if (!await originalFile.exists()) {
         emit(UploadStoryError(error: 'Edited file not found'));
         return;
       }
 
+      /// 🔥 CALL YOUR EXISTING COMPRESSION FUNCTION
+      File fileToUpload = originalFile;
+
+      final compressedFile = await compressImage(editedFilePath);
+
+      if (compressedFile != null && await compressedFile.exists()) {
+        fileToUpload = compressedFile;
+      }
+
       // Generate unique story ID
-      final storyRef = FirebaseDatabase.instance.ref().child('stories').child(uid);
+      final storyRef =
+          FirebaseDatabase.instance.ref().child('stories').child(uid);
       final newStoryRef = storyRef.push();
       final storyId = newStoryRef.key;
 
@@ -48,7 +56,7 @@ class UploadStoryCubit extends Cubit<UploadStoryState> {
           .child(uid)
           .child('$storyId.jpg');
 
-      final uploadTask = await storageRef.putFile(file);
+      final uploadTask = await storageRef.putFile(fileToUpload);
       final downloadUrl = await uploadTask.ref.getDownloadURL();
 
       // Save story data
@@ -56,7 +64,7 @@ class UploadStoryCubit extends Cubit<UploadStoryState> {
         'storyId': storyId,
         'ownerId': uid,
         'imageUrl': downloadUrl,
-        'createdAt': ServerValue.timestamp, // Important for 24-hour expiration
+        'createdAt': ServerValue.timestamp,
       };
 
       await newStoryRef.set(storyData);
@@ -68,7 +76,6 @@ class UploadStoryCubit extends Cubit<UploadStoryState> {
     }
   }
 
-  /// Optional: Delete a specific story (e.g., before 24h if user wants)
   deleteStory({required String storyId}) async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -87,7 +94,6 @@ class UploadStoryCubit extends Cubit<UploadStoryState> {
           .child(uid)
           .child(storyId);
 
-      // Get image URL to delete from Storage
       final snapshot = await storyRef.get();
       if (!snapshot.exists) {
         emit(UploadStoryError(error: 'Story not found'));
@@ -102,7 +108,6 @@ class UploadStoryCubit extends Cubit<UploadStoryState> {
         await storageRef.delete();
       }
 
-      // Remove from database
       await storyRef.remove();
 
       emit(UploadStorySuccess());

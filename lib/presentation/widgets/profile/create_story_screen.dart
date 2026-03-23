@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:myydoctor/core/loader/loader.dart';
 import 'package:provider/provider.dart';
 import 'package:vs_story_designer/vs_story_designer.dart';
 
@@ -72,10 +71,7 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
             Text(
               'Create amazing stories with photos, text & drawings',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade400,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
             ),
             const SizedBox(height: 60),
 
@@ -89,41 +85,54 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
                   context: context,
                   backgroundColor: Colors.grey[900],
                   shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  builder: (context) => SafeArea(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.camera_alt, color: Colors.white),
-                          title: const Text(
-                            'Take Photo',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          onTap: () => Navigator.pop(context, 'camera'),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.photo_library, color: Colors.white),
-                          title: const Text(
-                            'Choose from Gallery',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          onTap: () => Navigator.pop(context, 'gallery'),
-                        ),
-                        const SizedBox(height: 10),
-                      ],
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
                     ),
                   ),
+                  builder:
+                      (context) => SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                              ),
+                              title: const Text(
+                                'Take Photo',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              onTap: () => Navigator.pop(context, 'camera'),
+                            ),
+                            ListTile(
+                              leading: const Icon(
+                                Icons.photo_library,
+                                color: Colors.white,
+                              ),
+                              title: const Text(
+                                'Choose from Gallery',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              onTap: () => Navigator.pop(context, 'gallery'),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                        ),
+                      ),
                 );
 
                 if (source == null) return;
 
                 XFile? pickedFile;
                 if (source == 'camera') {
-                  pickedFile = await picker.pickImage(source: ImageSource.camera);
+                  pickedFile = await picker.pickImage(
+                    source: ImageSource.camera,
+                  );
                 } else {
-                  pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                  pickedFile = await picker.pickImage(
+                    source: ImageSource.gallery,
+                  );
                 }
 
                 if (pickedFile == null) return;
@@ -132,47 +141,72 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
                 final editedFilePath = await Navigator.push<String>(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => VSStoryDesigner(
-                      mediaPath: pickedFile!.path,
-                      centerText: "Edit your story",
-                      middleBottomWidget: const SizedBox(),
-                      galleryThumbnailQuality: 200,
-                      fontFamilyList: [
-                        FontType.roboto,
-                        FontType.notoSansGujarati,
-                        FontType.dancingScript,
-                        FontType.pacifico,
-                      ],
-                      colorList: const [
-                        Colors.white,
-                        Colors.black,
-                        Colors.red,
-                        Colors.orange,
-                        Colors.yellow,
-                        Colors.green,
-                        Colors.blue,
-                        Colors.purple,
-                        Colors.pink,
-                        Colors.brown,
-                        Colors.grey,
-                      ],
-                      // IMPORTANT: close designer instantly
-                      onDone: (editedFile) {
-                        Navigator.pop(context, editedFile);
-                      },
-                    ),
+                    builder:
+                        (_) => VSStoryDesigner(
+                          mediaPath: pickedFile!.path,
+                          centerText: "Edit your story",
+                          middleBottomWidget: const SizedBox(),
+                          galleryThumbnailQuality: 200,
+                          fontFamilyList: [
+                            FontType.roboto,
+                            FontType.notoSansGujarati,
+                            FontType.dancingScript,
+                            FontType.pacifico,
+                          ],
+                          colorList: const [
+                            Colors.white,
+                            Colors.black,
+                            Colors.red,
+                            Colors.orange,
+                            Colors.yellow,
+                            Colors.green,
+                            Colors.blue,
+                            Colors.purple,
+                            Colors.pink,
+                            Colors.brown,
+                            Colors.grey,
+                          ],
+                          // IMPORTANT: close designer instantly
+                          onDone: (editedFile) {
+                            Navigator.pop(context, editedFile);
+                          },
+                        ),
                   ),
                 );
 
                 if (editedFilePath == null) return;
 
                 // Show loader instantly
+                // Show loader instantly
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (_) => const Center(
-                    child: MyyDocLoader(),
-                  ),
+                  builder:
+                      (_) => const Dialog(
+                        backgroundColor: Colors.black,
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 16),
+                              Column(
+                                children: [
+                                  Text(
+                                    'Stay on this screen',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  Text(
+                                    'Processing & Uploading...',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                 );
 
                 final cubit = context.read<UploadStoryCubit>();
@@ -203,7 +237,10 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.purple,
-                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 50,
+                  vertical: 18,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -260,13 +297,7 @@ class _StoryCreatorHomeState extends State<StoryCreatorHome> {
       children: [
         Icon(icon, color: Colors.purple.shade300, size: 20),
         const SizedBox(width: 12),
-        Text(
-          text,
-          style: TextStyle(
-            color: Colors.grey.shade300,
-            fontSize: 14,
-          ),
-        ),
+        Text(text, style: TextStyle(color: Colors.grey.shade300, fontSize: 14)),
       ],
     );
   }
