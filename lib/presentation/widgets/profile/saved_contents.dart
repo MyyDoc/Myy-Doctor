@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cached_video_player_plus/cached_video_player_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -38,7 +40,6 @@ class SavedContents extends StatefulWidget {
 
 class _SavedContentsState extends State<SavedContents>
     with AutomaticKeepAliveClientMixin<SavedContents> {
-
   @override
   bool get wantKeepAlive => true;
 
@@ -51,13 +52,9 @@ class _SavedContentsState extends State<SavedContents>
   void initState() {
     super.initState();
 
-    postStream = PicPostRepository()
-        .getSavedPostsStream()
-        .asBroadcastStream();
+    postStream = PicPostRepository().getSavedPostsStream().asBroadcastStream();
 
-    reelStream = ReelRepository()
-        .getCurrentUserReels()
-        .asBroadcastStream();
+    reelStream = ReelRepository().getCurrentUserReels().asBroadcastStream();
   }
 
   @override
@@ -92,10 +89,7 @@ class _SavedContentsState extends State<SavedContents>
         Expanded(
           child: IndexedStack(
             index: selectedIndex,
-            children: [
-              _PostsGrid(postStream),
-              _ReelsGrid(reelStream),
-            ],
+            children: [_PostsGrid(postStream), _ReelsGrid(reelStream)],
           ),
         ),
       ],
@@ -189,21 +183,24 @@ class _PostsGrid extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => SavedFeedsDetailedScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => SavedFeedsDetailedScreen()),
                 );
               },
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    post.imageUrl,
+                  CachedNetworkImage(
+                    imageUrl: post.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: Colors.grey[900],
-                      child: const Icon(Icons.broken_image, color: Colors.white),
-                    ),
+                    placeholder: (_, __) => Container(color: Colors.grey[900]),
+                    errorWidget:
+                        (_, __, ___) => Container(
+                          color: Colors.grey[900],
+                          child: const Icon(
+                            Icons.broken_image,
+                            color: Colors.white,
+                          ),
+                        ),
                   ),
                   // Optional: small bookmark icon to indicate saved
                   Positioned(
@@ -224,6 +221,7 @@ class _PostsGrid extends StatelessWidget {
     );
   }
 }
+
 /// ─────────────────────────────────────────────────────────
 /// REELS GRID
 /// ─────────────────────────────────────────────────────────
@@ -268,10 +266,9 @@ class _ReelsGrid extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => ReelPlayerScreen(
-                      reels: reels,
-                      initialIndex: index,
-                    ),
+                    builder:
+                        (_) =>
+                            ReelPlayerScreen(reels: reels, initialIndex: index),
                   ),
                 );
               },
@@ -306,7 +303,6 @@ class _ReelGridItem extends StatelessWidget {
   }
 }
 
-
 /// ─────────────────────────────────────────────────────────
 /// REEL PLAYER SCREEN (FULLY SAFE)
 /// ─────────────────────────────────────────────────────────
@@ -325,7 +321,7 @@ class ReelPlayerScreen extends StatefulWidget {
 }
 
 class _ReelPlayerScreenState extends State<ReelPlayerScreen> {
-  VideoPlayerController? _controller;
+  CachedVideoPlayerPlusController? _controller;
   late PageController _pageController;
   late int currentIndex;
 
@@ -345,12 +341,17 @@ class _ReelPlayerScreenState extends State<ReelPlayerScreen> {
       await _controller?.pause();
       await _controller?.dispose();
 
-      _controller = VideoPlayerController.networkUrl(Uri.parse(url));
-      await _controller!.initialize();
+      final controller = CachedVideoPlayerPlusController.networkUrl(
+        Uri.parse(url),
+      );
 
-      _controller!
+      await controller.initialize();
+
+      controller
         ..setLooping(true)
         ..play();
+
+      _controller = controller;
 
       if (mounted) setState(() {});
     } catch (_) {
@@ -373,26 +374,30 @@ class _ReelPlayerScreenState extends State<ReelPlayerScreen> {
     // OPTIONAL: confirmation dialog
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Delete Reel"),
-        content: const Text("Are you sure you want to delete this reel?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Delete Reel"),
+            content: const Text("Are you sure you want to delete this reel?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () {
+                  context.read<UploadReelCubit>().deleteReel(
+                    reelId: reelId,
+                    ownerId: ownerId,
+                  );
+                  Navigator.pop(context, true);
+                },
+                child: const Text(
+                  "Delete",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              context.read<UploadReelCubit>().deleteReel(reelId: reelId , ownerId: ownerId);
-              Navigator.pop(context, true);
-            },
-            child: const Text(
-              "Delete",
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
     );
 
     if (confirm != true) return;
@@ -458,13 +463,13 @@ class _ReelPlayerScreenState extends State<ReelPlayerScreen> {
             children: [
               /// VIDEO
               Center(
-                child: _controller != null &&
-                        _controller!.value.isInitialized
-                    ? AspectRatio(
-                        aspectRatio: _controller!.value.aspectRatio,
-                        child: VideoPlayer(_controller!),
-                      )
-                    : const MyyDocLoader(),
+                child:
+                    _controller != null && _controller!.value.isInitialized
+                        ? AspectRatio(
+                          aspectRatio: _controller!.value.aspectRatio,
+                          child: CachedVideoPlayerPlus(_controller!),
+                        )
+                        : const MyyDocLoader(),
               ),
 
               /// BACK BUTTON
@@ -491,15 +496,16 @@ class _ReelPlayerScreenState extends State<ReelPlayerScreen> {
                       _onDeleteReel(reel.reelId, reel.ownerId);
                     }
                   },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Text(
-                        "Delete",
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ],
+                  itemBuilder:
+                      (context) => [
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text(
+                            "Delete",
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
                 ),
               ),
 
