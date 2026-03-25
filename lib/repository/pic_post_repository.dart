@@ -7,6 +7,8 @@ import 'package:myydoctor/data/posts/pic_post_model.dart';
 
 class PicPostRepository {
   static final Map<String, bool> _doctorCache = {};
+  Timer? _debounce;
+  static final Map<String, Map<String, dynamic>> _userCache = {};
 
   Stream<List<PicPostModel>> getPostsStream({
     required bool useOwnerProfile,
@@ -22,21 +24,26 @@ class PicPostRepository {
 
     final uid = currentUser.uid;
     final targetUid =
-    useOwnerProfile ? null : (anotherProfile.isNotEmpty ? anotherProfile : uid);
+        useOwnerProfile
+            ? null
+            : (anotherProfile.isNotEmpty ? anotherProfile : uid);
 
-    final postsRef = useOwnerProfile
-        ? FirebaseDatabase.instance.ref("posts")
-        : FirebaseDatabase.instance.ref("posts/$targetUid");
+    final postsRef =
+        useOwnerProfile
+            ? FirebaseDatabase.instance.ref("posts")
+            : FirebaseDatabase.instance.ref("posts/$targetUid");
 
     final savedRef = FirebaseDatabase.instance.ref("savedPosts/$uid");
-    final blockedRef =
-    FirebaseDatabase.instance.ref("users/$uid/blockedUsers");
+    final blockedRef = FirebaseDatabase.instance.ref("users/$uid/blockedUsers");
 
     Set<String> savedPostIds = {};
     Set<String> blockedUsers = {};
 
     Future<void> fetchAndEmit() async {
-      final event = await postsRef.get();
+      final query = postsRef
+          .orderByChild('createdAt')
+          .limitToLast(40); // 👈 change 40 to 30–50 as you like
+      final event = await query.get();
       final data = event.value;
 
       if (data == null || data is! Map) {
@@ -69,30 +76,42 @@ class PicPostRepository {
             String? name;
             String? profileImageUrl;
 
-            final userSnap =
-            await FirebaseDatabase.instance.ref('users/$ownerId').get();
+            if (_userCache.containsKey(ownerId)) {
+              final userData = _userCache[ownerId]!;
+              name = userData['username'];
+              profileImageUrl = userData['profileImageUrl'];
+            } else {
+              final userSnap =
+                  await FirebaseDatabase.instance.ref('users/$ownerId').get();
 
-            if (userSnap.exists && userSnap.value is Map) {
-              final userData = userSnap.value as Map<dynamic, dynamic>;
-              name = userData['username'] as String?;
-              profileImageUrl = userData['profileImageUrl'] as String?;
+              if (userSnap.exists && userSnap.value is Map) {
+                final userData = Map<String, dynamic>.from(
+                  userSnap.value as Map,
+                );
+
+                _userCache[ownerId] = userData;
+
+                name = userData['username'];
+                profileImageUrl = userData['profileImageUrl'];
+              }
             }
 
-            posts.add(PicPostModel(
-              postId: postId,
-              ownerId: ownerId,
-              caption: postMap['caption']?.toString() ?? '',
-              imageUrl: postMap['imageUrl']?.toString() ?? '',
-              likeCount: (postMap['likeCount'] as num?)?.toInt() ?? 0,
-              commentCount:
-              (postMap['commentCount'] as num?)?.toInt() ?? 0,
-              name: name ?? postMap['username']?.toString(),
-              profileImageUrl:
-              profileImageUrl ?? postMap['profileImageUrl']?.toString(),
-              createdAt: (postMap['createdAt'] as num?)?.toInt() ?? 0,
-              isSaved: savedPostIds.contains(postId),
-              isOwnerDoctor: isDoctor,
-            ));
+            posts.add(
+              PicPostModel(
+                postId: postId,
+                ownerId: ownerId,
+                caption: postMap['caption']?.toString() ?? '',
+                imageUrl: postMap['imageUrl']?.toString() ?? '',
+                likeCount: (postMap['likeCount'] as num?)?.toInt() ?? 0,
+                commentCount: (postMap['commentCount'] as num?)?.toInt() ?? 0,
+                name: name ?? postMap['username']?.toString(),
+                profileImageUrl:
+                    profileImageUrl ?? postMap['profileImageUrl']?.toString(),
+                createdAt: (postMap['createdAt'] as num?)?.toInt() ?? 0,
+                isSaved: savedPostIds.contains(postId),
+                isOwnerDoctor: isDoctor,
+              ),
+            );
           }
         }
       } else {
@@ -111,20 +130,21 @@ class PicPostRepository {
 
           final postMap = postEntry.value as Map<dynamic, dynamic>;
 
-          posts.add(PicPostModel(
-            postId: postId,
-            ownerId: targetUid,
-            caption: postMap['caption']?.toString() ?? '',
-            imageUrl: postMap['imageUrl']?.toString() ?? '',
-            likeCount: (postMap['likeCount'] as num?)?.toInt() ?? 0,
-            commentCount:
-            (postMap['commentCount'] as num?)?.toInt() ?? 0,
-            name: postMap['username']?.toString(),
-            profileImageUrl: postMap['profileImageUrl']?.toString(),
-            createdAt: (postMap['createdAt'] as num?)?.toInt() ?? 0,
-            isSaved: savedPostIds.contains(postId),
-            isOwnerDoctor: isOwnerDoctor,
-          ));
+          posts.add(
+            PicPostModel(
+              postId: postId,
+              ownerId: targetUid,
+              caption: postMap['caption']?.toString() ?? '',
+              imageUrl: postMap['imageUrl']?.toString() ?? '',
+              likeCount: (postMap['likeCount'] as num?)?.toInt() ?? 0,
+              commentCount: (postMap['commentCount'] as num?)?.toInt() ?? 0,
+              name: postMap['username']?.toString(),
+              profileImageUrl: postMap['profileImageUrl']?.toString(),
+              createdAt: (postMap['createdAt'] as num?)?.toInt() ?? 0,
+              isSaved: savedPostIds.contains(postId),
+              isOwnerDoctor: isOwnerDoctor,
+            ),
+          );
         }
       }
 
@@ -156,7 +176,11 @@ class PicPostRepository {
     });
 
     postsRef.onValue.listen((_) {
-      fetchAndEmit();
+      if (_debounce?.isActive ?? false) return;
+
+      _debounce = Timer(const Duration(milliseconds: 400), () {
+        fetchAndEmit();
+      });
     });
 
     return controller.stream;
@@ -211,12 +235,16 @@ class PicPostRepository {
             final postMap = entry.value as Map<dynamic, dynamic>?;
             if (postMap == null) continue;
 
-            futures.add(_buildPostModelFromMap(
-              postMap,
-              postId,
-              uid, // owner is current user
-              isSaved: savedPostToOwner.containsKey(postId), // mark as saved if it is
-            ));
+            futures.add(
+              _buildPostModelFromMap(
+                postMap,
+                postId,
+                uid, // owner is current user
+                isSaved: savedPostToOwner.containsKey(
+                  postId,
+                ), // mark as saved if it is
+              ),
+            );
           }
         }
 
@@ -230,8 +258,9 @@ class PicPostRepository {
 
           futures.add(() async {
             try {
-              final postRef = FirebaseDatabase.instance
-                  .ref('posts/$ownerId/$postId');
+              final postRef = FirebaseDatabase.instance.ref(
+                'posts/$ownerId/$postId',
+              );
 
               print('Querying saved post at: posts/$ownerId/$postId');
 
@@ -279,11 +308,11 @@ class PicPostRepository {
 
   /// Helper to build PicPostModel from post map
   Future<PicPostModel> _buildPostModelFromMap(
-      Map<dynamic, dynamic> postMap,
-      String postId,
-      String ownerId, {
-        required bool isSaved,
-      }) async {
+    Map<dynamic, dynamic> postMap,
+    String postId,
+    String ownerId, {
+    required bool isSaved,
+  }) async {
     String? name;
     String? profileImageUrl;
     bool isOwnerDoctor = await _getIsDoctor(ownerId);
@@ -320,10 +349,8 @@ class PicPostRepository {
     }
 
     try {
-      final docSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
+      final docSnapshot =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
       if (!docSnapshot.exists) {
         _doctorCache[uid] = false;
@@ -338,7 +365,8 @@ class PicPostRepository {
 
       final preference = userData['userPreference'] as List<dynamic>?;
 
-      final isDoctor = preference != null &&
+      final isDoctor =
+          preference != null &&
           preference.isNotEmpty &&
           (preference[0] as String?)?.toLowerCase() == 'doctor';
 
